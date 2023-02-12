@@ -1,0 +1,11 @@
+[Unit]
+Description=rszurro service
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/rszurro /etc/rszurro/config.json
+
+[Install]
+WantedBy=multi-user.target

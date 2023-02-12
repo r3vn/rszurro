@@ -1,0 +1,28 @@
+[package]
+name = "rszurro"
+authors = ["Giuseppe Corti <giuseppe.corti@protonmail.com>"]
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.deb]
+depends = "$auto, systemd"
+extended-description = "A daemon that read modbus registers from a serial bus and send their values to home assistant API"
+section = "admin"
+priority = "optional"
+assets = [
+    ["target/release/rszurro", "/usr/bin/rszurro", "755"],
+    ["debian/rszurro.service", "/lib/systemd/system/rszurro.service", "644"],
+    ["config.json", "/etc/rszurro/config.json", "644"],
+]
+maintainer-scripts = "debian/scripts"
+
+[dependencies]
+tokio = { version = "1.25.0", features = ["rt", "macros", "time"] }
+tokio-modbus = { version = "0.6.0", default-features = false, features = ["rtu"] }
+tokio-serial = "5.4.1"
+serde = "1.0.117"
+serde_derive = "1.0.117"
+serde_json = "1.0.59"
+reqwest = { version = "0.11.14", features = ["json"] }
+clap = { version = "4.1.4", features = ["derive"] }

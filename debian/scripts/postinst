@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if deb-systemd-helper --quiet was-enabled rszurro.service
+then
+	deb-systemd-helper enable rszurro.service > /dev/null || true
+	deb-systemd-invoke start rszurro
+else
+	deb-systemd-helper update-state rszurro.service > /dev/null || true
+fi
