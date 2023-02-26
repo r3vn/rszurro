@@ -1,6 +1,20 @@
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
-use clap::Parser;
+use std::collections::HashMap;
+use std::error::Error;
+use tokio_serial::SerialStream;
+use tokio_modbus::prelude::*;
+use tokio_serial::SerialPortBuilder;
+
+#[derive(clap::Parser)]
+pub struct Cli {
+    /// Sets a custom config file
+    #[arg(value_name = "FILE", required = true )]
+    pub config: String,
+
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
+}
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Sensor {
@@ -40,15 +54,28 @@ pub struct ConfigFile {
     pub slaves: Vec<Slave>,
 }
 
-#[derive(Parser)]
-pub struct Cli {
-    /// Sets a custom config file
-    #[arg(value_name = "FILE", required = true )]
-    pub config: String,
+pub struct Connection {
+    pub slave: Slave,
+    pub ctx: tokio_modbus::client::Context,
+    pub last_value_map: HashMap<u16, f64>,
+}
 
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub verbose: u8,
+impl Connection {
+    // Connect to modbus slave
+    pub async fn connect(
+        slave: Slave,
+        serial_conn: &SerialPortBuilder,
+    ) -> Result<Self, Box<dyn Error>> {
 
+        let ctx = rtu::connect_slave(SerialStream::open(serial_conn).unwrap(), Slave(slave.address))
+            .await?;
+
+        Ok(Self {
+            slave,
+            ctx,
+            last_value_map: HashMap::new(),
+        })
+    }
 }
 
 pub async fn send_to_homeassistant(
@@ -56,14 +83,13 @@ pub async fn send_to_homeassistant(
         slave: &Slave,
         sensor: &Sensor,
         value: f64
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<reqwest::Response, reqwest::Error> {
 
     // home assistant url
-    let ha_url = homeassistant.url.to_owned() +
-        &"/api/states/sensor.".to_string() +
-        &slave.name +
-        &"_".to_string() +
-        &sensor.name;
+    let ha_url = format!(
+        "{}/api/states/sensor.{}_{}",
+        homeassistant.url, slave.name, sensor.name
+    );
 
     // build json
     let post_data = json!({
@@ -78,12 +104,11 @@ pub async fn send_to_homeassistant(
 
     // post request
     let client = reqwest::Client::new();
+
     client.post(ha_url)
         .header("Content-type", "application/json")
         .header("Authorization", "Bearer ".to_owned() + &homeassistant.api_key)
         .json(&post_data)
         .send()
-        .await?;
-
-    Ok(())
+        .await
 }

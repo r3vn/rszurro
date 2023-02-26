@@ -1,8 +1,6 @@
-use tokio_serial::SerialStream;
-use tokio_modbus::prelude::*;
 use tokio::time::{sleep, Duration};
+use tokio_modbus::client::Reader;
 use clap::Parser;
-use std::collections::HashMap;
 
 use rszurro::*;
 
@@ -18,87 +16,109 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         serde_json::from_str::<ConfigFile>(&configuration).unwrap()
     };
 
+    let mut connections = Vec::new();
+
     // Make serial connection
     let builder = tokio_serial::new(
         configuration.serialport.tty_path,
         configuration.serialport.baud_rate);
 
-    let mut connections: Vec<tokio_modbus::client::Context> = vec![];
-    let mut previous_value_map: Vec<HashMap<usize, f64>> = vec![];
-
-    for index in 0..configuration.slaves.len() {
-        // connect to slave
-        let ctx = rtu::connect_slave(
-            SerialStream::open(&builder).unwrap(),
-            Slave(configuration.slaves[index].address))
-            .await?;
-
-        // make an hashmap for each slave
-        previous_value_map.push(HashMap::new());
-
-        // add connection into a list
-        connections.push(ctx);
+    for slave in configuration.slaves {
+        let connection = Connection::connect(slave, &builder).await?;
+        connections.push(connection);
     }
 
     loop {
-        for slave_i in 0..configuration.slaves.len() {
+        for conn in &mut connections {
+            for sensor in &conn.slave.sensors {
 
-            let mut current_value_map: HashMap<usize, f64> = HashMap::new();
-
-            for sensor_i in 0..configuration.slaves[slave_i].sensors.len() {
-
-                // Read modbus register value and convert u16 response to f64
-                let rsp = {
-                    let rsp = connections[slave_i]
+                let sensor_value = {
+                    // Read modbus register value and convert u16 response to f64
+                    let modbus_value = conn.ctx
                         .read_holding_registers(
-                            configuration.slaves[slave_i].sensors[sensor_i].address,
+                            sensor.address,
                             1)
-                        .await?
-                        .iter()
-                        .map(|&val| val as i64)
-                        .sum::<i64>() as f64;
+                        .await;
 
-                    // multiply by accuracy and truncate float decimals to 2
-                    f64::trunc(rsp * configuration.slaves[slave_i].sensors[sensor_i].accuracy * 100.0) / 100.0
+                    match modbus_value {
+                        Ok(rsp) => {
+                            let mut float_value = rsp
+                                .iter()
+                                .map(|&val| val as i64)
+                                .sum::<i64>() as f64;
+
+                            // multiply by accuracy and truncate float decimals to 2
+                            float_value = f64::trunc(float_value * sensor.accuracy * 100.0) / 100.0;
+
+                            if cli.verbose > 2 {
+                                println!("slave: {} reg: {} - {}: {}{}",
+                                    &conn.slave.name,
+                                    &sensor.address,
+                                    &sensor.name,
+                                    &float_value,
+                                    &sensor.unit);
+                            }
+
+                            float_value
+                        },
+                        Err(e) => {
+                            if cli.verbose > 0 {
+                                println!("slave: {} reg: {} - !!! error reading modbus register: {}.",
+                                    &conn.slave.name,
+                                    &sensor.address,
+                                    &e);
+                            }
+
+                            sleep(Duration::from_millis(configuration.serialport.sleep_ms * 2))
+                                .await;
+
+                            continue;
+                        }
+                    }
                 };
 
-                if cli.verbose > 0 {
-                    print!("slave: {} reg: {} - {}: {}{}",
-                        &configuration.slaves[slave_i].name,
-                        &configuration.slaves[slave_i].sensors[sensor_i].address,
-                        &configuration.slaves[slave_i].sensors[sensor_i].name,
-                        &rsp,
-                        &configuration.slaves[slave_i].sensors[sensor_i].unit);
-                }
-
                 // Check if the value changed since last loop
-                if previous_value_map[slave_i].get(&sensor_i) != Some(&rsp) {
+                if conn.last_value_map.get(&sensor.address) != Some(&sensor_value) {
                     if cli.verbose > 1 {
-                        print!(" - sending value to HA...");
+                        println!("slave: {} reg: {} - value changed sending to HA...",
+                            &conn.slave.name,
+                            &sensor.address);
                     }
 
                     // Send data to HA
-                    send_to_homeassistant(
+                    let ha_rx = send_to_homeassistant(
                         &configuration.homeassistant,
-                        &configuration.slaves[slave_i],
-                        &configuration.slaves[slave_i].sensors[sensor_i],
-                        rsp).await?;
-                }
+                        &conn.slave,
+                        &sensor,
+                        sensor_value).await;
 
-                if cli.verbose > 0 {
-                    println!("");
-                }
+                    match ha_rx {
+                        Err(e) =>
+                            if cli.verbose > 0 {
+                                println!("slave: {} reg: {} - error: {}, sleeping...",
+                                    &conn.slave.name,
+                                    &sensor.address,
+                                    &e);
 
-                // Add sensor value on current_value_map
-                current_value_map.insert(sensor_i, rsp);
+                            sleep(Duration::from_millis(configuration.serialport.sleep_ms * 2))
+                                .await;
+                            },
+
+                        Ok(_) =>
+                            if cli.verbose > 1 {
+                                println!("slave: {} reg: {} - done.",
+                                    &conn.slave.name,
+                                    &sensor.address);
+                            }
+                    }
+
+                    // Add sensor value on current_value_map, update value if any
+                    conn.last_value_map.insert(sensor.address, sensor_value);
+                }
 
                 // prevent issues with serial
                 sleep(Duration::from_millis(configuration.serialport.sleep_ms)).await;
             }
-
-            // update previous values, this consume current_value
-            previous_value_map[slave_i].clear();
-            previous_value_map[slave_i].extend(current_value_map.into_iter());
         }
     }
 }
