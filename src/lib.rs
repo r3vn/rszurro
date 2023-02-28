@@ -1,10 +1,9 @@
+use tokio_serial::{SerialStream, SerialPortBuilder};
+use tokio_modbus::prelude::rtu;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::error::Error;
-use tokio_serial::SerialStream;
-use tokio_modbus::prelude::*;
-use tokio_serial::SerialPortBuilder;
 
 #[derive(clap::Parser)]
 pub struct Cli {
@@ -62,12 +61,14 @@ pub struct Connection {
 
 impl Connection {
     // Connect to modbus slave
-    pub async fn connect(
+    pub async fn new(
         slave: Slave,
         serial_conn: &SerialPortBuilder,
     ) -> Result<Self, Box<dyn Error>> {
 
-        let ctx = rtu::connect_slave(SerialStream::open(serial_conn).unwrap(), Slave(slave.address))
+        let ctx = rtu::connect_slave(
+                SerialStream::open(serial_conn).unwrap(),
+                tokio_modbus::slave::Slave(slave.address))
             .await?;
 
         Ok(Self {
@@ -92,8 +93,7 @@ pub async fn send_to_homeassistant(
     );
 
     // build json
-    let post_data = json!({
-        "state": value,
+    let mut post_data = json!({
         "attributes": {
             "unit_of_measurement": sensor.unit,
             "device_class": sensor.device_class,
@@ -102,13 +102,37 @@ pub async fn send_to_homeassistant(
         }
     });
 
-    // post request
-    let client = reqwest::Client::new();
-
-    client.post(ha_url)
+    let client = reqwest::Client::new()
+        .post(ha_url)
         .header("Content-type", "application/json")
-        .header("Authorization", "Bearer ".to_owned() + &homeassistant.api_key)
-        .json(&post_data)
-        .send()
-        .await
+        .header("Authorization", "Bearer ".to_owned() + &homeassistant.api_key);
+
+    match zero_decimal(value){
+        true => {
+            // add state as i64
+            post_data["state"] = (value as i64).into();
+
+            client
+                .json(&post_data)
+                .send()
+                .await
+        },
+        false => {
+            // add state as f64
+            post_data["state"] = value.into();
+
+            client
+                .json(&post_data)
+                .send()
+                .await
+        }
+    }
 }
+
+// check if floating value can be removed
+fn zero_decimal(float_value: f64) -> bool {
+    let decimal = float_value.fract();
+
+    decimal.abs() < std::f64::EPSILON
+}
+
