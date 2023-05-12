@@ -83,19 +83,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let ha_rx = send_to_homeassistant(
                         &configuration.homeassistant,
                         &conn.slave,
-                        &sensor,
+                        sensor,
                         sensor_value).await;
 
                     match ha_rx {
                         Err(e) =>
                             if cli.verbose > 0 {
-                                println!("slave: {} reg: {} - error: {}, sleeping...",
+                                println!("slave: {} reg: {} - error: {}",
                                     &conn.slave.name,
                                     &sensor.address,
                                     &e);
-
-                            sleep(Duration::from_millis(configuration.serialport.sleep_ms * 2))
-                                .await;
                             },
 
                         Ok(_) =>
