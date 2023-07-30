@@ -2,7 +2,7 @@
 name = "rszurro"
 authors = ["Giuseppe Corti <giuseppe.corti@protonmail.com>"]
 license = "MIT"
-version = "0.1.0"
+version = "0.2"
 edition = "2021"
 
 [package.metadata.deb]
@@ -25,5 +25,6 @@ futures = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
 clap = { version = "4.3", features = ["derive"] }
+lm-sensors = "0.1"

@@ -30,8 +30,8 @@ pub struct Monitor {
 impl Monitor {
     pub async fn run(
         &self,
-        homeassistant: Homeassistant,
-        verbose: u8,
+        homeassistant: &Homeassistant,
+        verbosity: u8,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Make serial connection
         let builder = tokio_serial::new(&self.serialport.tty_path, self.serialport.baud_rate);
@@ -62,9 +62,9 @@ impl Monitor {
                                         * 100.0,
                                 ) / 100.0;
 
-                                if verbose > 2 {
+                                if verbosity > 2 {
                                     println!(
-                                        "slave: {} reg: {} - {}: {}{}",
+                                        "[modbus_rtu] slave: {} reg: {} - {}: {}{}",
                                         &slave.name,
                                         &sensor.address,
                                         &sensor.name,
@@ -76,9 +76,9 @@ impl Monitor {
                                 float_value
                             }
                             Err(e) => {
-                                if verbose > 0 {
+                                if verbosity > 0 {
                                     println!(
-                                        "slave: {} reg: {} - !!! error reading modbus register: {}.",
+                                        "[modbus_rtu] slave: {} reg: {} - !!! error reading modbus register: {}.",
                                         &slave.name, &sensor.address, &e
                                     );
                                 }
@@ -90,9 +90,9 @@ impl Monitor {
 
                     // Check if the value changed since last loop
                     if last_value_map.get(&sensor.address) != Some(&sensor_value) {
-                        if verbose > 1 {
+                        if verbosity > 1 {
                             println!(
-                                "slave: {} reg: {} - value changed sending to HA...",
+                                "[modbus_rtu] slave: {} reg: {} - value changed sending to HA...",
                                 &slave.name, &sensor.address
                             );
                         }
@@ -100,27 +100,21 @@ impl Monitor {
                         // Send data to HA
                         let ha_rx = homeassistant.send(&slave.name, &sensor, sensor_value).await;
 
-                        match ha_rx {
-                            Err(e) => {
-                                if verbose > 0 {
-                                    println!(
-                                        "slave: {} reg: {} - error: {}, sleeping...",
-                                        &slave.name, &sensor.address, &e
-                                    );
+                        if ha_rx && verbosity > 1 {
+                            // Sensor's value sent to home assistant successfully
+                            println!(
+                                "[modbus_rtu] slave: {} reg: {} - done.",
+                                &slave.name, &slave.address
+                            );
+                        } else if !ha_rx && verbosity > 0 {
+                            // Error sending sensor's value to home assistant
+                            println!(
+                                "[modbus_rtu] slave: {} reg: {} - error, sleeping...",
+                                &slave.name, &slave.address
+                            );
 
-                                    sleep(Duration::from_millis(self.serialport.sleep_ms * 2))
-                                        .await;
-                                }
-                            }
-
-                            Ok(_) => {
-                                if verbose > 1 {
-                                    println!(
-                                        "slave: {} reg: {} - done.",
-                                        &slave.name, &sensor.address
-                                    );
-                                }
-                            }
+                            // Sleep for a while...
+                            sleep(Duration::from_millis(self.serialport.sleep_ms * 2)).await;
                         }
 
                         // Add sensor value on current_value_map, update value if any
@@ -130,6 +124,9 @@ impl Monitor {
                     // prevent issues with serial
                     sleep(Duration::from_millis(self.serialport.sleep_ms)).await;
                 }
+
+                // Disconnect the client
+                let _cls = ctx.disconnect().await;
             }
         }
     }

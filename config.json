@@ -1,15 +1,23 @@
 {
-	"homeassistant": {
-		"url": "http://homeassistant.local:8123",
-		"api_key": "<YOUR_API_KEY>"
+	"homeassistant" : {
+		"url" : "http://homeassistant.local:8123",
+		"api_key" : "<YOUR_API_KEY>"
 	},
 
-	"modbus_rtu": {
+	"lm_sensors" : {
+		"enabled" : true,
+		"device_name" : "rpi3garage",
+		"unit" : "°C",
+		"sleep_ms" : 5000
+	},
+
+	"modbus_rtu" : {
 		"enabled" : false,
-		"serialport": {
-			"tty_path": "/dev/ttyUSB0",
+
+		"serialport" : {
+			"tty_path" : "/dev/ttyUSB0",
 			"baud_rate": 9600,
-			"sleep_ms": 800
+			"sleep_ms" : 800
 		},
 
 		"slaves" : [
@@ -18,31 +26,31 @@
 				"address" : 1,
 				"sensors": [
 					{
-						"name": "energy_generation_today",
-						"friendly_name": "Produzione solare (oggi)",
-						"address": 1669,
+						"name" : "energy_generation_today",
+						"friendly_name" : "Produzione solare (oggi)",
+						"address" : 1669,
 						"accuracy": 0.01,
-						"unit": "kWh",
-						"state_class": "total_increasing",
-						"device_class": "energy"
+						"unit" : "kWh",
+						"state_class" : "total_increasing",
+						"device_class" : "energy"
 					},
 					{
-						"name": "energy_generation_total",
-						"friendly_name": "Produzione Solare Totale",
-						"address": 1671,
-						"accuracy": 0.1,
-						"unit": "kWh",
-						"state_class": "total",
-						"device_class": "energy"
+						"name" : "energy_generation_total",
+						"friendly_name" : "Produzione Solare Totale",
+						"address" : 1671,
+						"accuracy" : 0.1,
+						"unit" : "kWh",
+						"state_class" : "total",
+						"device_class" : "energy"
 					},
 					{
-						"name": "energy_purchase_today",
-						"friendly_name": "Energia Comprata Oggi",
-						"address": 1677,
-						"accuracy": 0.01,
-						"unit": "kWh",
-						"state_class": "total_increasing",
-						"device_class": "energy"
+						"name" : "energy_purchase_today",
+						"friendly_name" : "Energia Comprata Oggi",
+						"address" : 1677,
+						"accuracy" : 0.01,
+						"unit" : "kWh",
+						"state_class" : "total_increasing",
+						"device_class" : "energy"
 					},
 					{
 						"name": "energy_purchase_total",
