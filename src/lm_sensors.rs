@@ -45,8 +45,8 @@ impl Monitor {
                             let sensor_name_str =
                                 sub_feature.clone().name().unwrap().unwrap().to_string();
 
-                            // trunc float value to two digits
-                            let float_value = f64::trunc(value.raw_value() * 100.0) / 100.0;
+                            // trunc float value to one digit
+                            let float_value = f64::trunc(value.raw_value() * 10.0) / 10.0;
 
                             // check if value changed since last iteration
                             if last_value_map.get(&sensor_name_str) != Some(&float_value) {
