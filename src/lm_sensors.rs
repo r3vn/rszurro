@@ -13,14 +13,14 @@ pub struct Monitor {
 impl Monitor {
     pub fn run(
         &self,
-        homeassistant: &Homeassistant,
+        homeassistant: Homeassistant,
         verbosity: u8,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // Initialize LM sensors library.
-        let sensors = lm_sensors::Initializer::default().initialize().unwrap();
-
         // Initialize last value map
         let mut last_value_map: HashMap<String, f64> = HashMap::new();
+
+        // Initialize LM sensors library.
+        let sensors = lm_sensors::Initializer::default().initialize().unwrap();
 
         loop {
             // Get all chips from lm-sensors.

@@ -30,7 +30,7 @@ pub struct Monitor {
 impl Monitor {
     pub async fn run(
         &self,
-        homeassistant: &Homeassistant,
+        homeassistant: Homeassistant,
         verbosity: u8,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Make serial connection

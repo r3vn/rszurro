@@ -23,7 +23,7 @@ async fn main() {
         handles.push(tokio::spawn(async move {
             rszurro
                 .modbus_rtu
-                .run(&ha, cli.verbose.clone())
+                .run(ha, cli.verbose.clone())
                 .await
                 .unwrap()
         }));
@@ -34,8 +34,8 @@ async fn main() {
         // start lm_sensors monitor
         let ha = rszurro.homeassistant.clone();
 
-        handles.push(tokio::spawn(async move {
-            rszurro.lm_sensors.run(&ha, cli.verbose.clone()).unwrap()
+        handles.push(tokio::task::spawn_blocking(move || {
+            rszurro.lm_sensors.run(ha, cli.verbose.clone()).unwrap()
         }));
     }
 
