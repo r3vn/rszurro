@@ -52,7 +52,7 @@ impl Monitor {
                     // Read sensor value from modbus
                     let sensor_value = {
                         let modbus_value =
-                            ctx.read_holding_registers(sensor.address.clone(), 1).await;
+                            ctx.read_holding_registers(sensor.address, 1).await;
 
                         match modbus_value {
                             Ok(rsp) => {
@@ -98,7 +98,7 @@ impl Monitor {
                         }
 
                         // Send data to HA
-                        let ha_rx = homeassistant.send(&slave.name, &sensor, sensor_value).await;
+                        let ha_rx = homeassistant.send(&slave.name, sensor, sensor_value).await;
 
                         if ha_rx && verbosity > 1 {
                             // Sensor's value sent to home assistant successfully
