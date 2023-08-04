@@ -1,8 +1,12 @@
 {
-	"homeassistant" : {
-		"url" : "http://homeassistant.local:8123",
-		"api_key" : "<YOUR_API_KEY>"
-	},
+	"endpoints" : [
+		{
+			"name" : "homeassistant",
+			"enabled" : true,
+			"url" : "http://homeassistant.local:8123",
+			"api_key" : "<YOUR_API_KEY>"
+		}
+	],
 
 	"lm_sensors" : {
 		"enabled" : true,

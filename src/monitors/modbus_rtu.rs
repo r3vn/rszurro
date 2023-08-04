@@ -4,7 +4,7 @@ use tokio::time::{sleep, Duration};
 use tokio_modbus::prelude::{rtu, Reader};
 use tokio_serial::SerialStream;
 
-use crate::{Homeassistant, Sensor};
+use crate::{update_sensor, Endpoint, Sensor};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Slave {
@@ -21,16 +21,16 @@ pub struct SerialConfig {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct Monitor {
+pub struct ModbusRTU {
     pub enabled: bool,
     pub serialport: SerialConfig,
     pub slaves: Vec<Slave>,
 }
 
-impl Monitor {
+impl ModbusRTU {
     pub async fn run(
         &self,
-        homeassistant: Homeassistant,
+        endpoints: Vec<Endpoint>,
         verbosity: u8,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Make serial connection
@@ -89,13 +89,13 @@ impl Monitor {
                     if last_value_map.get(&sensor.address) != Some(&sensor_value) {
                         if verbosity > 1 {
                             println!(
-                                "[modbus_rtu] slave: {} reg: {} - value changed sending to HA...",
+                                "[modbus_rtu] slave: {} reg: {} - value changed sending to endpoints...",
                                 &slave.name, &sensor.address
                             );
                         }
 
                         // Send data to HA
-                        let _ha_rx = homeassistant.send(&slave.name, sensor, sensor_value).await;
+                        update_sensor(&endpoints, &slave.name, sensor, sensor_value).await;
 
                         // Add sensor value on current_value_map, update value if any
                         last_value_map.insert(sensor.address, sensor_value);

@@ -1,12 +1,14 @@
 # rszurro
 
-**'rszurro'** is a simple daemon written in [Rust](https://www.rust-lang.org) that monitors Modbus registers from a serial bus and send their values to [Home Assistant](https://www.home-assistant.io) via REST API whenever they change.
+**rszurro** is an IoT-focused daemon written in [Rust](https://www.rust-lang.org) that monitors sensors from various sources and distributes data to different endpoints.
 
-It is mainly designed to integrate serial Modbus devices that are physically unreachable from your Home Assistant server.
+It is formerly designed to integrate raw sensors that are physically unreachable from an [Home Assistant](https://www.home-assistant.io) server.
 
 ## Building
 
-To build rszurro, ensure Rust is installed, clone the repository, navigate to the project directory, and run:
+To build rszurro, ensure Rust is installed, also the lm_sensors monitor requires sensors.h provided on debian by the **libsensors-dev** package.
+
+Clone the repository, navigate to the project directory, and run:
 
 ```sh
 cargo build --release
@@ -26,7 +28,8 @@ To use rszurro, you need to provide the path of your configuration file, as foll
 target/release/rszurro /path/to/config.json
 ```
 
-Once running, rszurro will continuously monitor the specified Modbus registers for changes and update the corresponding sensors in Home Assistant.
+Once operational, rszurro will consistently monitor the designated sensors data for any alterations, promptly transmitting their updated information to the configured endpoints.
+
 
 You can see all available command line options with:
 

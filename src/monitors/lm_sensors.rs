@@ -1,19 +1,19 @@
-use crate::{Homeassistant, Sensor};
+use crate::{update_sensor_sync, Endpoint, Sensor};
 use lm_sensors::prelude::*;
 use serde_derive::{Deserialize, Serialize};
 use std::{collections::HashMap, thread, time};
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct Monitor {
+pub struct LMSensors {
     pub enabled: bool,
     pub sleep_ms: u64,
     pub device_name: String,
     pub temperature_unit: String,
 }
-impl Monitor {
+impl LMSensors {
     pub fn run(
         &self,
-        homeassistant: Homeassistant,
+        endpoints: Vec<Endpoint>,
         verbosity: u8,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Initialize last value map
@@ -72,7 +72,7 @@ impl Monitor {
                                 // Value changed since last iteration
                                 if verbosity > 1 {
                                     println!(
-                                        "[lm_sensors] chip: {} sensor: {} - value changed sending to HA...", 
+                                        "[lm_sensors] chip: {} sensor: {} - value changed sending to endpoints...", 
                                         chip_name, sub_feature);
                                 }
 
@@ -91,7 +91,8 @@ impl Monitor {
                                 };
 
                                 // Send value to Home Assistant
-                                let _ha_rx = homeassistant.send_sync(
+                                update_sensor_sync(
+                                    &endpoints,
                                     &self.device_name,
                                     &sensor,
                                     float_value,

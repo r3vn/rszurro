@@ -1,8 +1,7 @@
-pub mod lm_sensors;
-pub mod modbus_rtu;
+pub mod endpoints;
+pub mod monitors;
 
 use serde_derive::{Deserialize, Serialize};
-use serde_json::json;
 
 #[derive(clap::Parser)]
 pub struct Cli {
@@ -16,9 +15,21 @@ pub struct Cli {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ConfigFile {
-    pub homeassistant: Homeassistant,
-    pub modbus_rtu: modbus_rtu::Monitor,
-    pub lm_sensors: lm_sensors::Monitor,
+    pub endpoints: Vec<Endpoint>,
+    pub modbus_rtu: monitors::ModbusRTU,
+    pub lm_sensors: monitors::LMSensors,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct Endpoint {
+    pub name: String,
+    pub enabled: bool,
+
+    #[serde(default)]
+    pub url: String,
+
+    #[serde(default)]
+    pub api_key: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -44,99 +55,61 @@ pub struct Sensor {
     pub device_class: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Homeassistant {
-    pub url: String,
-    pub api_key: String,
-}
+pub async fn update_sensor(
+    endpoints: &Vec<Endpoint>,
+    device_name: &String,
+    sensor: &Sensor,
+    value: f64
+) {
+    // send sensor's data to endpoints async
+    for endpoint in endpoints {
 
-impl Homeassistant {
-    pub async fn send(
-        &self, 
-        device_name: &String, 
-        sensor: &Sensor, 
-        value: f64
-    ) -> bool {
-        // home assistant url
-        let ha_url = format!(
-            "{}/api/states/sensor.{}_{}",
-            &self.url, device_name, sensor.name
-        );
+        // endpoint is disabled
+        if !endpoint.enabled { continue }
 
-        // build json
-        let mut post_data = json!({
-            "attributes": {
-                "unit_of_measurement": sensor.unit,
-                "device_class": sensor.device_class,
-                "friendly_name": sensor.friendly_name,
-                "state_class": sensor.state_class
-            }
-        });
-
-        let client = reqwest::Client::new()
-            .post(ha_url)
-            .header("Content-type", "application/json")
-            .header("Authorization", "Bearer ".to_owned() + &self.api_key);
-
-        post_data["state"] = match zero_decimal(value) {
-            true => (value as i64).into(), // add state as i64
-            false => value.into(),         // add state as f64
+        // initialize endpoints
+        let edp = match endpoint.name.as_str() {
+            "homeassistant" => endpoints::Homeassistant {
+                    url: endpoint.url.clone(),
+                    api_key: endpoint.api_key.clone()
+            },
+            "_" => continue,
+            &_ => todo!()
         };
-
-        match client.json(&post_data).send().await {
-            Err(e) => {
-                println!("[homeassistant] {}", e);
-                false
-            }
-            Ok(_) => true,
-        }
-    }
-
-    pub fn send_sync(
-        &self, 
-        device_name: &String, 
-        sensor: &Sensor, 
-        value: f64
-    ) -> bool {
-        // home assistant url
-        let ha_url = format!(
-            "{}/api/states/sensor.{}_{}",
-            &self.url, device_name, sensor.name
-        );
-
-        // build json
-        let mut post_data = json!({
-            "attributes": {
-                "unit_of_measurement": sensor.unit,
-                "device_class": sensor.device_class,
-                "friendly_name": sensor.friendly_name,
-                "state_class": sensor.state_class
-            }
-        });
-
-        let client = reqwest::blocking::Client::new()
-            .post(ha_url)
-            .header("Content-type", "application/json")
-            .header("Authorization", "Bearer ".to_owned() + &self.api_key);
-
-        post_data["state"] = match zero_decimal(value) {
-            true => (value as i64).into(), // add state as i64
-            false => value.into(),         // add state as f64
-        };
-
-        match client.json(&post_data).send() {
-            Err(e) => {
-                println!("[homeassistant] {}", e);
-                false
-            }
-            Ok(_) => true,
-        }
+    
+        // send data
+        edp.send(
+            device_name,
+            sensor,
+            value).await;
     }
 }
+pub fn update_sensor_sync(
+    endpoints: &Vec<Endpoint>, 
+    device_name: &String, 
+    sensor: &Sensor, 
+    value: f64
+) {
+    // send sensor's data to endpoints sync
+    for endpoint in endpoints {
 
-fn zero_decimal(float_value: f64) -> bool {
-    // check if floating value can be removed
-    let decimal = float_value.fract();
+        // endpoint is disabled
+        if !endpoint.enabled { continue }
 
-    decimal.abs() < std::f64::EPSILON
+        // initialize endpoint
+        let edp = match endpoint.name.as_str() {
+            "homeassistant" => endpoints::Homeassistant {
+                    url: endpoint.url.clone(),
+                    api_key: endpoint.api_key.clone()
+            },
+            "_" => continue,
+            &_ => todo!()
+        };
+
+        // send data
+        edp.send_sync(
+            device_name,
+            sensor,
+            value);
+    }
 }

@@ -2,12 +2,12 @@
 name = "rszurro"
 authors = ["Giuseppe Corti <giuseppe.corti@protonmail.com>"]
 license = "MIT"
-version = "0.2"
+version = "0.2.0"
 edition = "2021"
 
 [package.metadata.deb]
 depends = "$auto, systemd"
-extended-description = "A daemon that read modbus registers from a serial bus and send their values to home assistant API"
+extended-description = "IoT focused daemon for multi-source sensor data integration and distribution across endpoints."
 section = "admin"
 priority = "optional"
 assets = [
