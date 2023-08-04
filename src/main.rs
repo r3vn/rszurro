@@ -15,8 +15,8 @@ async fn main() {
 
     let mut handles = vec![];
 
+    // check if modbus_rtu monitor is enabled
     if rszurro.modbus_rtu.enabled {
-        // check if modbus_rtu monitor is enabled
         // start modbus_rtu monitor
         let ha = rszurro.homeassistant.clone();
 
@@ -29,8 +29,8 @@ async fn main() {
         }));
     }
 
+    // check if lm_sensors monitor is enabled
     if rszurro.lm_sensors.enabled {
-        // check if lm_sensors monitor is enabled
         // start lm_sensors monitor
         let ha = rszurro.homeassistant.clone();
 
