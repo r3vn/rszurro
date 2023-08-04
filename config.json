@@ -8,6 +8,14 @@
 		}
 	],
 
+	"sysinfo" : {
+		"enabled" : true,
+		"device_name" : "rpi3garage",
+		"uptime" : true,
+		"loadavg" : true,
+		"sleep_ms" : 1200000
+	},
+
 	"lm_sensors" : {
 		"enabled" : true,
 		"device_name" : "rpi3garage",
@@ -17,13 +25,11 @@
 
 	"modbus_rtu" : {
 		"enabled" : false,
-
 		"serialport" : {
 			"tty_path" : "/dev/ttyUSB0",
 			"baud_rate": 9600,
 			"sleep_ms" : 800
 		},
-
 		"slaves" : [
 			{
 				"name" : "HYD6000ZSSHP",

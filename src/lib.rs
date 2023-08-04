@@ -18,6 +18,7 @@ pub struct ConfigFile {
     pub endpoints: Vec<Endpoint>,
     pub modbus_rtu: monitors::ModbusRTU,
     pub lm_sensors: monitors::LMSensors,
+    pub sysinfo: monitors::SysInfo
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -84,6 +85,7 @@ pub async fn update_sensor(
             value).await;
     }
 }
+
 pub fn update_sensor_sync(
     endpoints: &Vec<Endpoint>, 
     device_name: &String, 

@@ -39,6 +39,25 @@ async fn main() {
         }));
     }
 
+    // check if sysinfo monitor is enabled
+    if rszurro.sysinfo.enabled {
+
+        if cli.verbose > 0 {
+            println!("[sysinfo] starting...");
+        }
+
+        // start modbus_rtu monitor
+        let endpoints = rszurro.endpoints.clone();
+
+        handles.push(tokio::spawn(async move {
+            rszurro
+                .sysinfo
+                .run(endpoints, cli.verbose)
+                .await
+                .unwrap()
+        }));
+    }
+
     // check if lm_sensors monitor is enabled
     if rszurro.lm_sensors.enabled {
 
