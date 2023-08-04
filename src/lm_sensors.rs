@@ -8,7 +8,7 @@ pub struct Monitor {
     pub enabled: bool,
     pub sleep_ms: u64,
     pub device_name: String,
-    pub unit: String,
+    pub temperature_unit: String,
 }
 impl Monitor {
     pub fn run(
@@ -42,7 +42,7 @@ impl Monitor {
 
                     // Set unit from device_class
                     let unit = match device_class.as_str() {
-                        "temperature" => self.unit.clone(),
+                        "temperature" => self.temperature_unit.clone(),
                         "humidity" => "%".to_string(),
                         "voltage" => "V".to_string(),
                         "power" => "W".to_string(),

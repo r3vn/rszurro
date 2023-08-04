@@ -7,7 +7,7 @@
 	"lm_sensors" : {
 		"enabled" : true,
 		"device_name" : "rpi3garage",
-		"unit" : "°C",
+		"temperature_unit" : "°C",
 		"sleep_ms" : 5000
 	},
 
