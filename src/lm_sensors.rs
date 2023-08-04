@@ -91,29 +91,11 @@ impl Monitor {
                                 };
 
                                 // Send value to Home Assistant
-                                let ha_rx = homeassistant.send_sync(
+                                let _ha_rx = homeassistant.send_sync(
                                     &self.device_name,
                                     &sensor,
                                     float_value,
                                 );
-
-                                // check home assistant response
-                                if ha_rx && verbosity > 1 {
-                                    // Sensor's value sent to home assistant successfully
-                                    println!(
-                                        "[lm_sensors] chip: {} sensor: {} - done.",
-                                        &chip_name, &sensor_name_str
-                                    );
-                                } else if !ha_rx && verbosity > 0 {
-                                    // Error sending sensor's value to home assistant
-                                    println!(
-                                        "[lm_sensors] chip: {} sensor: {} - error, sleeping...",
-                                        &chip_name, &sensor_name_str
-                                    );
-
-                                    // Sleep for a while...
-                                    thread::sleep(time::Duration::from_millis(self.sleep_ms * 2));
-                                }
                             }
 
                             // update last value map

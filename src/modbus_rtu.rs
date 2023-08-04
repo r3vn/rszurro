@@ -55,26 +55,14 @@ impl Monitor {
                             ctx.read_holding_registers(sensor.address, 1).await;
 
                         match modbus_value {
-                            Ok(rsp) => {
-                                let float_value = f64::trunc(
+                            // Convert modbus register's value to float and truncate it at two digit
+                            Ok(rsp) => f64::trunc(
                                     rsp.iter().map(|&val| val as i64).sum::<i64>() as f64
                                         * sensor.accuracy
                                         * 100.0,
-                                ) / 100.0;
+                                ) / 100.0,
 
-                                if verbosity > 2 {
-                                    println!(
-                                        "[modbus_rtu] slave: {} reg: {} - {}: {}{}",
-                                        &slave.name,
-                                        &sensor.address,
-                                        &sensor.name,
-                                        &float_value,
-                                        &sensor.unit
-                                    );
-                                }
-
-                                float_value
-                            }
+                            // Modbus error
                             Err(e) => {
                                 if verbosity > 0 {
                                     println!(
@@ -82,11 +70,20 @@ impl Monitor {
                                         &slave.name, &sensor.address, &e
                                     );
                                 }
-
                                 continue;
                             }
                         }
                     };
+
+                    if verbosity > 2 {
+                        println!("[modbus_rtu] slave: {} reg: {} - {}: {}{}",
+                            &slave.name,
+                            &sensor.address,
+                            &sensor.name,
+                            &sensor_value,
+                            &sensor.unit
+                        );
+                    }
 
                     // Check if the value changed since last loop
                     if last_value_map.get(&sensor.address) != Some(&sensor_value) {
@@ -98,24 +95,7 @@ impl Monitor {
                         }
 
                         // Send data to HA
-                        let ha_rx = homeassistant.send(&slave.name, sensor, sensor_value).await;
-
-                        if ha_rx && verbosity > 1 {
-                            // Sensor's value sent to home assistant successfully
-                            println!(
-                                "[modbus_rtu] slave: {} reg: {} - done.",
-                                &slave.name, &slave.address
-                            );
-                        } else if !ha_rx && verbosity > 0 {
-                            // Error sending sensor's value to home assistant
-                            println!(
-                                "[modbus_rtu] slave: {} reg: {} - error, sleeping...",
-                                &slave.name, &slave.address
-                            );
-
-                            // Sleep for a while...
-                            sleep(Duration::from_millis(self.serialport.sleep_ms * 2)).await;
-                        }
+                        let _ha_rx = homeassistant.send(&slave.name, sensor, sensor_value).await;
 
                         // Add sensor value on current_value_map, update value if any
                         last_value_map.insert(sensor.address, sensor_value);

@@ -51,7 +51,12 @@ pub struct Homeassistant {
 }
 
 impl Homeassistant {
-    pub async fn send(&self, device_name: &String, sensor: &Sensor, value: f64) -> bool {
+    pub async fn send(
+        &self, 
+        device_name: &String, 
+        sensor: &Sensor, 
+        value: f64
+    ) -> bool {
         // home assistant url
         let ha_url = format!(
             "{}/api/states/sensor.{}_{}",
@@ -87,7 +92,12 @@ impl Homeassistant {
         }
     }
 
-    pub fn send_sync(&self, device_name: &String, sensor: &Sensor, value: f64) -> bool {
+    pub fn send_sync(
+        &self, 
+        device_name: &String, 
+        sensor: &Sensor, 
+        value: f64
+    ) -> bool {
         // home assistant url
         let ha_url = format!(
             "{}/api/states/sensor.{}_{}",
