@@ -20,6 +20,7 @@ async fn main() {
 
     let mut handles = vec![];
 
+    #[cfg(feature = "modbus-rtu")]
     // check if modbus_rtu monitor is enabled
     if rszurro.modbus_rtu.enabled {
         if cli.verbose > 0 {
@@ -38,6 +39,7 @@ async fn main() {
         }));
     }
 
+    #[cfg(feature = "sysinfo")]
     // check if sysinfo monitor is enabled
     if rszurro.sysinfo.enabled {
         if cli.verbose > 0 {
@@ -52,6 +54,7 @@ async fn main() {
         }));
     }
 
+    #[cfg(feature = "gpio")]
     // check if gpio monitor is enabled
     if rszurro.gpio.enabled {
         if cli.verbose > 0 {
@@ -66,6 +69,7 @@ async fn main() {
         }));
     }
 
+    #[cfg(feature = "lmsensors")]
     // check if lm_sensors monitor is enabled
     if rszurro.lm_sensors.enabled {
         if cli.verbose > 0 {

@@ -16,9 +16,17 @@ pub struct Cli {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ConfigFile {
     pub endpoints: Vec<Endpoint>,
+
+    #[cfg(feature = "modbus-rtu")]
     pub modbus_rtu: monitors::ModbusRTU,
+
+    #[cfg(feature = "lmsensors")]
     pub lm_sensors: monitors::LMSensors,
+
+    #[cfg(feature = "sysinfo")]
     pub sysinfo: monitors::SysInfo,
+
+    #[cfg(feature = "gpio")]
     pub gpio: monitors::Gpio,
 }
 
