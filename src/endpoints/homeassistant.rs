@@ -11,12 +11,6 @@ pub struct Homeassistant {
 
 impl Homeassistant {
     pub async fn send(&self, device_name: &String, sensor: &Sensor, value: SensorValue) -> bool {
-        // home assistant url
-        let ha_url = format!(
-            "{}/api/states/sensor.{}_{}",
-            &self.url, device_name, sensor.name
-        );
-
         // build json
         let mut post_data = json!({
             "attributes": {
@@ -27,10 +21,8 @@ impl Homeassistant {
             }
         });
 
-        let client = reqwest::Client::new()
-            .post(ha_url)
-            .header("Content-type", "application/json")
-            .header("Authorization", "Bearer ".to_owned() + &self.api_key);
+        // set sensor prefix
+        let prefix;
 
         match value {
             SensorValue::IsBool(value) => {
@@ -39,18 +31,33 @@ impl Homeassistant {
                 } else {
                     "off".to_string()
                 });
+                prefix = "binary_sensor";
             }
             SensorValue::IsF64(value) => {
                 post_data["state"] = match zero_decimal(value) {
                     true => (value as i64).into(), // add state as i64
                     false => value.into(),         // add state as f64
                 };
+                prefix = "sensor";
             }
             SensorValue::IsString(value) => {
                 post_data["state"] = serde_json::Value::String(value);
+                prefix = "sensor";
             }
         }
+        // home assistant url
+        let ha_url = format!(
+            "{}/api/states/{}.{}_{}",
+            &self.url, prefix, device_name, sensor.name
+        );
 
+        // build client
+        let client = reqwest::Client::new()
+            .post(ha_url)
+            .header("Content-type", "application/json")
+            .header("Authorization", "Bearer ".to_owned() + &self.api_key);
+
+        // send sensor value
         match client.json(&post_data).send().await {
             Err(e) => {
                 println!("[homeassistant] {}", e);
@@ -61,12 +68,6 @@ impl Homeassistant {
     }
 
     pub fn send_sync(&self, device_name: &String, sensor: &Sensor, value: SensorValue) -> bool {
-        // home assistant url
-        let ha_url = format!(
-            "{}/api/states/sensor.{}_{}",
-            &self.url, device_name, sensor.name
-        );
-
         // build json
         let mut post_data = json!({
             "attributes": {
@@ -77,10 +78,8 @@ impl Homeassistant {
             }
         });
 
-        let client = reqwest::blocking::Client::new()
-            .post(ha_url)
-            .header("Content-type", "application/json")
-            .header("Authorization", "Bearer ".to_owned() + &self.api_key);
+        // set sensor prefix
+        let prefix;
 
         match value {
             SensorValue::IsBool(value) => {
@@ -89,18 +88,33 @@ impl Homeassistant {
                 } else {
                     "off".to_string()
                 });
+                prefix = "binary_sensor";
             }
             SensorValue::IsF64(value) => {
                 post_data["state"] = match zero_decimal(value) {
                     true => (value as i64).into(), // add state as i64
                     false => value.into(),         // add state as f64
                 };
+                prefix = "sensor";
             }
             SensorValue::IsString(value) => {
                 post_data["state"] = serde_json::Value::String(value);
+                prefix = "sensor";
             }
         }
+        // home assistant url
+        let ha_url = format!(
+            "{}/api/states/{}.{}_{}",
+            &self.url, prefix, device_name, sensor.name
+        );
 
+        // build client
+        let client = reqwest::blocking::Client::new()
+            .post(ha_url)
+            .header("Content-type", "application/json")
+            .header("Authorization", "Bearer ".to_owned() + &self.api_key);
+
+        // send sensor value
         match client.json(&post_data).send() {
             Err(e) => {
                 println!("[homeassistant] {}", e);
