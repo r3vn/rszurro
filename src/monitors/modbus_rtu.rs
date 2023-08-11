@@ -4,7 +4,7 @@ use tokio::time::{sleep, Duration};
 use tokio_modbus::prelude::{rtu, Reader};
 use tokio_serial::SerialStream;
 
-use crate::{update_sensor, Endpoint, Sensor};
+use crate::{update_sensor, Endpoint, Sensor, SensorValue};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Slave {
@@ -51,16 +51,17 @@ impl ModbusRTU {
                 for sensor in &slave.sensors {
                     // Read sensor value from modbus
                     let sensor_value = {
-                        let modbus_value =
-                            ctx.read_holding_registers(sensor.address, 1).await;
+                        let modbus_value = ctx.read_holding_registers(sensor.address, 1).await;
 
                         match modbus_value {
                             // Convert modbus register's value to float and truncate it at two digit
-                            Ok(rsp) => f64::trunc(
+                            Ok(rsp) => {
+                                f64::trunc(
                                     rsp.iter().map(|&val| val as i64).sum::<i64>() as f64
                                         * sensor.accuracy
                                         * 100.0,
-                                ) / 100.0,
+                                ) / 100.0
+                            }
 
                             // Modbus error
                             Err(e) => {
@@ -76,12 +77,9 @@ impl ModbusRTU {
                     };
 
                     if verbosity > 2 {
-                        println!("[modbus_rtu] slave: {} reg: {} - {}: {}{}",
-                            &slave.name,
-                            &sensor.address,
-                            &sensor.name,
-                            &sensor_value,
-                            &sensor.unit
+                        println!(
+                            "[modbus_rtu] slave: {} reg: {} - {}: {}{}",
+                            &slave.name, &sensor.address, &sensor.name, &sensor_value, &sensor.unit
                         );
                     }
 
@@ -95,7 +93,13 @@ impl ModbusRTU {
                         }
 
                         // Send data to HA
-                        update_sensor(&endpoints, &slave.name, sensor, sensor_value).await;
+                        update_sensor(
+                            &endpoints,
+                            &slave.name,
+                            sensor,
+                            SensorValue::IsF64(sensor_value),
+                        )
+                        .await;
 
                         // Add sensor value on current_value_map, update value if any
                         last_value_map.insert(sensor.address, sensor_value);

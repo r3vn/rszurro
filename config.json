@@ -23,6 +23,18 @@
 		"sleep_ms" : 5000
 	},
 
+	"gpio" : {
+		"enabled" : true,
+		"gpio_chip" : "gpiochip0",
+		"sensors" : [
+			{
+				"name" : "rain_sensor",
+				"friendly_name" : "Sensore Pioggia",
+				"address" : 11
+			}
+		]
+	},
+
 	"modbus_rtu" : {
 		"enabled" : false,
 		"serialport" : {

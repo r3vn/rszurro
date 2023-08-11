@@ -18,3 +18,10 @@ mod sysinfo;
 pub mod sysinfo_monitor {
     pub use crate::monitors::sysinfo::SysInfo;
 }
+
+// gpio
+pub use self::gpio_monitor::Gpio;
+mod gpio;
+pub mod gpio_monitor {
+    pub use crate::monitors::gpio::Gpio;
+}

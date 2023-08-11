@@ -1,4 +1,4 @@
-use crate::{update_sensor_sync, Endpoint, Sensor};
+use crate::{update_sensor_sync, Endpoint, Sensor, SensorValue};
 use lm_sensors::prelude::*;
 use serde_derive::{Deserialize, Serialize};
 use std::{collections::HashMap, thread, time};
@@ -86,6 +86,7 @@ impl LMSensors {
                                     unit: unit.clone(),
                                     accuracy: 1.0,
                                     address: 0,
+                                    is_bool: false,
                                     state_class: "measurement".to_string(),
                                     device_class: device_class.clone(),
                                 };
@@ -95,7 +96,7 @@ impl LMSensors {
                                     &endpoints,
                                     &self.device_name,
                                     &sensor,
-                                    float_value,
+                                    SensorValue::IsF64(float_value),
                                 );
                             }
 

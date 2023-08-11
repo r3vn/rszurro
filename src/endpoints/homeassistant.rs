@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::Sensor;
+use crate::{Sensor, SensorValue};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Homeassistant {
@@ -10,12 +10,7 @@ pub struct Homeassistant {
 }
 
 impl Homeassistant {
-    pub async fn send(
-        &self, 
-        device_name: &String, 
-        sensor: &Sensor, 
-        value: f64
-    ) -> bool {
+    pub async fn send(&self, device_name: &String, sensor: &Sensor, value: SensorValue) -> bool {
         // home assistant url
         let ha_url = format!(
             "{}/api/states/sensor.{}_{}",
@@ -37,10 +32,24 @@ impl Homeassistant {
             .header("Content-type", "application/json")
             .header("Authorization", "Bearer ".to_owned() + &self.api_key);
 
-        post_data["state"] = match zero_decimal(value) {
-            true => (value as i64).into(), // add state as i64
-            false => value.into(),         // add state as f64
-        };
+        match value {
+            SensorValue::IsBool(value) => {
+                post_data["state"] = serde_json::Value::String(if value {
+                    "on".to_string()
+                } else {
+                    "off".to_string()
+                });
+            }
+            SensorValue::IsF64(value) => {
+                post_data["state"] = match zero_decimal(value) {
+                    true => (value as i64).into(), // add state as i64
+                    false => value.into(),         // add state as f64
+                };
+            }
+            SensorValue::IsString(value) => {
+                post_data["state"] = serde_json::Value::String(value);
+            }
+        }
 
         match client.json(&post_data).send().await {
             Err(e) => {
@@ -51,12 +60,7 @@ impl Homeassistant {
         }
     }
 
-    pub fn send_sync(
-        &self, 
-        device_name: &String, 
-        sensor: &Sensor, 
-        value: f64
-    ) -> bool {
+    pub fn send_sync(&self, device_name: &String, sensor: &Sensor, value: SensorValue) -> bool {
         // home assistant url
         let ha_url = format!(
             "{}/api/states/sensor.{}_{}",
@@ -78,10 +82,24 @@ impl Homeassistant {
             .header("Content-type", "application/json")
             .header("Authorization", "Bearer ".to_owned() + &self.api_key);
 
-        post_data["state"] = match zero_decimal(value) {
-            true => (value as i64).into(), // add state as i64
-            false => value.into(),         // add state as f64
-        };
+        match value {
+            SensorValue::IsBool(value) => {
+                post_data["state"] = serde_json::Value::String(if value {
+                    "on".to_string()
+                } else {
+                    "off".to_string()
+                });
+            }
+            SensorValue::IsF64(value) => {
+                post_data["state"] = match zero_decimal(value) {
+                    true => (value as i64).into(), // add state as i64
+                    false => value.into(),         // add state as f64
+                };
+            }
+            SensorValue::IsString(value) => {
+                post_data["state"] = serde_json::Value::String(value);
+            }
+        }
 
         match client.json(&post_data).send() {
             Err(e) => {

@@ -22,7 +22,6 @@ async fn main() {
 
     // check if modbus_rtu monitor is enabled
     if rszurro.modbus_rtu.enabled {
-
         if cli.verbose > 0 {
             println!("[modbus_rtu] starting...");
         }
@@ -41,33 +40,41 @@ async fn main() {
 
     // check if sysinfo monitor is enabled
     if rszurro.sysinfo.enabled {
-
         if cli.verbose > 0 {
             println!("[sysinfo] starting...");
         }
 
-        // start modbus_rtu monitor
+        // start sysinfou monitor
         let endpoints = rszurro.endpoints.clone();
 
         handles.push(tokio::spawn(async move {
-            rszurro
-                .sysinfo
-                .run(endpoints, cli.verbose)
-                .await
-                .unwrap()
+            rszurro.sysinfo.run(endpoints, cli.verbose).await.unwrap()
+        }));
+    }
+
+    // check if gpio monitor is enabled
+    if rszurro.gpio.enabled {
+        if cli.verbose > 0 {
+            println!("[gpio] starting...");
+        }
+
+        // start gpio monitor
+        let endpoints = rszurro.endpoints.clone();
+
+        handles.push(tokio::spawn(async move {
+            rszurro.gpio.run(endpoints, cli.verbose).await.unwrap()
         }));
     }
 
     // check if lm_sensors monitor is enabled
     if rszurro.lm_sensors.enabled {
-
         if cli.verbose > 0 {
             println!("[lm_sensors] starting...");
         }
 
         // start lm_sensors monitor
         let endpoints = rszurro.endpoints.clone();
-    
+
         handles.push(tokio::task::spawn_blocking(move || {
             rszurro.lm_sensors.run(endpoints, cli.verbose).unwrap()
         }));
