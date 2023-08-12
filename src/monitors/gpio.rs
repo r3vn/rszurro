@@ -20,12 +20,13 @@ impl Gpio {
         for sensor in self.sensors.clone() {
             let chip_name = self.gpio_chip.clone();
             let ep = endpoints.clone();
+            let sensor_address = u32::from(sensor.address);
 
             handles.push(tokio::spawn(async move {
                 // spawn an handle for each sensor
                 let chip = Chip::new(&chip_name).await.unwrap();
 
-                let opts = Options::input([23]) // configure lines offsets
+                let opts = Options::input([sensor_address]) // configure lines offsets
                     .edge(EdgeDetect::Both) // configure edges to detect
                     .consumer("my-inputs"); // optionally set consumer string
 
