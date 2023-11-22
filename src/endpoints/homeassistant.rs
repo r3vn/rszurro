@@ -34,7 +34,7 @@ impl Homeassistant {
                 prefix = "binary_sensor";
             }
             SensorValue::IsF64(value) => {
-                post_data["state"] = match zero_decimal(value) {
+                post_data["state"] = match zero_decimal(value).await {
                     true => (value as i64).into(), // add state as i64
                     false => value.into(),         // add state as f64
                 };
@@ -91,7 +91,7 @@ impl Homeassistant {
                 prefix = "binary_sensor";
             }
             SensorValue::IsF64(value) => {
-                post_data["state"] = match zero_decimal(value) {
+                post_data["state"] = match zero_decimal_sync(value) {
                     true => (value as i64).into(), // add state as i64
                     false => value.into(),         // add state as f64
                 };
@@ -125,8 +125,14 @@ impl Homeassistant {
     }
 }
 
-fn zero_decimal(float_value: f64) -> bool {
+fn zero_decimal_sync(float_value: f64) -> bool {
     // check if floating value can be removed
+    let decimal = float_value.fract();
+
+    decimal.abs() < std::f64::EPSILON
+}
+
+async fn zero_decimal(float_value: f64) -> bool {
     let decimal = float_value.fract();
 
     decimal.abs() < std::f64::EPSILON
