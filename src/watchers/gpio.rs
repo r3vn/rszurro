@@ -1,6 +1,8 @@
-use crate::{update_sensor, Endpoint, Sensor, SensorValue};
+use crate::{update_sensor, Sensor, SensorValue, SensorUpdate};
 use serde_derive::{Deserialize, Serialize};
 use tokio_gpiod::{Chip, Edge, EdgeDetect, Options};
+use tokio::sync::mpsc;
+use log::trace;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Gpio {
@@ -12,15 +14,14 @@ pub struct Gpio {
 impl Gpio {
     pub async fn run(
         &self,
-        endpoints: Vec<Endpoint>,
-        verbosity: u8,
+        tx: mpsc::Sender<SensorUpdate>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut handles = vec![];
 
         for sensor in self.sensors.clone() {
             let chip_name = self.gpio_chip.clone();
-            let ep = endpoints.clone();
             let sensor_address = u32::from(sensor.address);
+            let tx2 = tx.clone();
 
             handles.push(tokio::spawn(async move {
                 // spawn an handle for each sensor
@@ -41,15 +42,10 @@ impl Gpio {
                     };
 
                     // send value to endpoints
-                    update_sensor(&ep, &chip_name, &sensor, SensorValue::IsBool(sensor_value))
+                    update_sensor(&tx2, &chip_name, &sensor, SensorValue::IsBool(sensor_value))
                         .await;
 
-                    if verbosity > 2 {
-                        println!(
-                            "[gpio] {} - {} event: {:?}",
-                            &chip_name, &sensor.address, event
-                        );
-                    }
+                    trace!("{} {} event: {:?}", &chip_name, &sensor.address, event);
                 }
             }));
         }

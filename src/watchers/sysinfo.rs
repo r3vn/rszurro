@@ -1,6 +1,8 @@
-use crate::{update_sensor, Endpoint, Sensor, SensorValue};
+use crate::{update_sensor, Sensor, SensorValue, SensorUpdate};
 use serde_derive::{Deserialize, Serialize};
 use tokio::{fs, time::sleep, time::Duration};
+use tokio::sync::mpsc;
+use log::trace;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SysInfo {
@@ -14,8 +16,7 @@ pub struct SysInfo {
 impl SysInfo {
     pub async fn run(
         &self,
-        endpoints: Vec<Endpoint>,
-        verbosity: u8,
+        tx: mpsc::Sender<SensorUpdate>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         loop {
             // uptime
@@ -26,7 +27,7 @@ impl SysInfo {
                     .split('.')
                     .next()
                     .and_then(|u| u.parse().ok())
-                    .ok_or("[sysinfo] error: unable to read uptime.")?;
+                    .ok_or("error")?;
 
                 let uptime_sensor = Sensor {
                     name: "uptime".to_string(),
@@ -39,15 +40,10 @@ impl SysInfo {
                     device_class: "duration".to_string(),
                 };
 
-                if verbosity > 1 {
-                    println!(
-                        "[sysinfo] uptime: {}, sending to endpoints...",
-                        &uptime_seconds
-                    )
-                }
+                trace!("uptime => {}", &uptime_seconds);
 
                 update_sensor(
-                    &endpoints,
+                    &tx,
                     &self.device_name,
                     &uptime_sensor,
                     SensorValue::IsF64(uptime_seconds),

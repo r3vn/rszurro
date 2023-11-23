@@ -1,7 +1,9 @@
-use crate::{update_sensor_sync, Endpoint, Sensor, SensorValue};
+use crate::{update_sensor_sync, Sensor, SensorValue, SensorUpdate};
 use lm_sensors::prelude::*;
 use serde_derive::{Deserialize, Serialize};
-use std::{collections::HashMap, thread, time};
+use std::{thread, time};
+use tokio::sync::mpsc;
+use log::trace;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct LMSensors {
@@ -13,12 +15,8 @@ pub struct LMSensors {
 impl LMSensors {
     pub fn run(
         &self,
-        endpoints: Vec<Endpoint>,
-        verbosity: u8,
+        tx: mpsc::Sender<SensorUpdate>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // Initialize last value map
-        let mut last_value_map: HashMap<String, f64> = HashMap::new();
-
         // Initialize LM sensors library.
         let sensors = lm_sensors::Initializer::default().initialize().unwrap();
 
@@ -53,12 +51,7 @@ impl LMSensors {
                     for sub_feature in feature.sub_feature_iter() {
                         if let Ok(value) = sub_feature.value() {
                             // Sensor has value
-                            if verbosity > 2 {
-                                println!(
-                                    "[lm_sensors] chip: {} sensor: {}: {}",
-                                    chip_name, sub_feature, value
-                                );
-                            }
+                            trace!("{} {} => {}", chip_name, sub_feature, value);
 
                             // get sensor name from lmsensors
                             let sensor_name_str =
@@ -67,41 +60,28 @@ impl LMSensors {
                             // trunc float value to one digit
                             let float_value = f64::trunc(value.raw_value() * 10.0) / 10.0;
 
-                            // check if value changed since last iteration
-                            if last_value_map.get(&sensor_name_str) != Some(&float_value) {
-                                // Value changed since last iteration
-                                if verbosity > 1 {
-                                    println!(
-                                        "[lm_sensors] chip: {} sensor: {} - value changed sending to endpoints...", 
-                                        chip_name, sub_feature);
-                                }
+                            // Build a sensor object
+                            let sensor = Sensor {
+                                name: format!("{}_{}", &chip_name, sensor_name_str),
+                                friendly_name: format!(
+                                    "{}'s {}",
+                                    &self.device_name, sensor_name_str
+                                ),
+                                unit: unit.clone(),
+                                accuracy: 1.0,
+                                address: 0,
+                                is_bool: false,
+                                state_class: "measurement".to_string(),
+                                device_class: device_class.clone(),
+                            };
 
-                                // Build a sensor object
-                                let sensor = Sensor {
-                                    name: format!("{}_{}", &chip_name, sensor_name_str),
-                                    friendly_name: format!(
-                                        "{}'s {}",
-                                        &self.device_name, sensor_name_str
-                                    ),
-                                    unit: unit.clone(),
-                                    accuracy: 1.0,
-                                    address: 0,
-                                    is_bool: false,
-                                    state_class: "measurement".to_string(),
-                                    device_class: device_class.clone(),
-                                };
-
-                                // Send value to Home Assistant
-                                update_sensor_sync(
-                                    &endpoints,
-                                    &self.device_name,
-                                    &sensor,
-                                    SensorValue::IsF64(float_value),
-                                );
-                            }
-
-                            // update last value map
-                            last_value_map.insert(sensor_name_str, float_value);
+                            // Send value to Home Assistant
+                            update_sensor_sync(
+                                &tx,
+                                &self.device_name,
+                                &sensor,
+                                SensorValue::IsF64(float_value),
+                            );
                         }
                     }
                 }

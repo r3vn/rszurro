@@ -1,10 +1,11 @@
 use serde_derive::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tokio::time::{sleep, Duration};
 use tokio_modbus::prelude::{rtu, Reader};
 use tokio_serial::SerialStream;
+use tokio::sync::mpsc;
+use log::{trace, error};
 
-use crate::{update_sensor, Endpoint, Sensor, SensorValue};
+use crate::{update_sensor, Sensor, SensorValue, SensorUpdate};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Slave {
@@ -30,23 +31,18 @@ pub struct ModbusRTU {
 impl ModbusRTU {
     pub async fn run(
         &self,
-        endpoints: Vec<Endpoint>,
-        verbosity: u8,
+        tx: mpsc::Sender<SensorUpdate>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Make serial connection
         let builder = tokio_serial::new(&self.serialport.tty_path, self.serialport.baud_rate);
 
-        // init last value map
-        let mut last_value_map = HashMap::new();
-
         loop {
             for slave in &self.slaves {
                 // Connect to modbus slave
-                let mut ctx = rtu::connect_slave(
+                let mut ctx = rtu::attach_slave(
                     SerialStream::open(&builder).unwrap(),
                     tokio_modbus::slave::Slave(slave.address),
-                )
-                .await?;
+                );
 
                 for sensor in &slave.sensors {
                     // Read sensor value from modbus
@@ -65,45 +61,21 @@ impl ModbusRTU {
 
                             // Modbus error
                             Err(e) => {
-                                if verbosity > 0 {
-                                    println!(
-                                        "[modbus_rtu] slave: {} reg: {} - !!! error reading modbus register: {}.",
-                                        &slave.name, &sensor.address, &e
-                                    );
-                                }
+                                error!("{} {} error reading modbus register: {}", &slave.name, &sensor.name, &e);
                                 continue;
                             }
                         }
                     };
+                    trace!("{} {} => {}{}", &slave.name, &sensor.name, &sensor_value, &sensor.unit);
 
-                    if verbosity > 2 {
-                        println!(
-                            "[modbus_rtu] slave: {} reg: {} - {}: {}{}",
-                            &slave.name, &sensor.address, &sensor.name, &sensor_value, &sensor.unit
-                        );
-                    }
-
-                    // Check if the value changed since last loop
-                    if last_value_map.get(&sensor.address) != Some(&sensor_value) {
-                        if verbosity > 1 {
-                            println!(
-                                "[modbus_rtu] slave: {} reg: {} - value changed sending to endpoints...",
-                                &slave.name, &sensor.address
-                            );
-                        }
-
-                        // Send data to HA
-                        update_sensor(
-                            &endpoints,
-                            &slave.name,
-                            sensor,
-                            SensorValue::IsF64(sensor_value),
-                        )
-                        .await;
-
-                        // Add sensor value on current_value_map, update value if any
-                        last_value_map.insert(sensor.address, sensor_value);
-                    }
+                    // Send data to HA
+                    update_sensor(
+                        &tx,
+                        &slave.name,
+                        sensor,
+                        SensorValue::IsF64(sensor_value),
+                    )
+                    .await;
 
                     // prevent issues with serial
                     sleep(Duration::from_millis(self.serialport.sleep_ms)).await;
