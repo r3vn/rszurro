@@ -1,8 +1,8 @@
+use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
-use log::{debug, error};
 
-use crate::{SensorValue, SensorUpdate};
+use crate::{SensorUpdate, SensorValue};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Homeassistant {
@@ -67,7 +67,7 @@ impl Homeassistant {
             Ok(_) => {
                 debug!("{}: updated successfully.", &update.sensor.name);
                 true
-            },
+            }
         }
     }
 }

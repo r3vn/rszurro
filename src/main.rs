@@ -1,8 +1,8 @@
 use clap::Parser;
+use log::{info, LevelFilter};
 use tokio::sync::mpsc;
-use log::{LevelFilter, info};
 
-use rszurro::{Cli, ConfigFile, CacheManager};
+use rszurro::{CacheManager, Cli, ConfigFile};
 
 #[tokio::main()]
 async fn main() {
@@ -17,20 +17,20 @@ async fn main() {
     // read configuration file
     let rszurro = {
         let configuration = std::fs::read_to_string(&cli.config).unwrap();
-        serde_json::from_str::<ConfigFile>(&configuration).unwrap()
+        serde_yaml::from_str::<ConfigFile>(&configuration).unwrap()
     };
 
     // init logger
-    env_logger::Builder::new().filter_level(
-        match cli.verbose {
+    env_logger::Builder::new()
+        .filter_level(match cli.verbose {
             0 => LevelFilter::Off,
             1 => LevelFilter::Error,
             2 => LevelFilter::Warn,
             3 => LevelFilter::Info,
             4 => LevelFilter::Debug,
             5.. => LevelFilter::Trace,
-        }
-    ).init();
+        })
+        .init();
 
     // init channel
     let (tx, rx) = mpsc::channel(256);
@@ -39,9 +39,9 @@ async fn main() {
     info!("starting \"cache_manager\"...");
     handles.push(tokio::spawn(async move {
         // start cache manager
-        let cache_manager = CacheManager { 
-            enabled: !cli.nocache, 
-            endpoints: rszurro.endpoints 
+        let cache_manager = CacheManager {
+            enabled: !cli.nocache,
+            endpoints: rszurro.endpoints,
         };
 
         cache_manager.run(rx).await;
@@ -51,16 +51,12 @@ async fn main() {
     // check if modbus_rtu monitor is enabled
     if rszurro.modbus_rtu.enabled {
         info!("starting \"modbus-rtu\" watcher...");
-        
+
         // start modbus_rtu monitor
         let tx2 = tx.clone();
 
         handles.push(tokio::spawn(async move {
-            rszurro
-                .modbus_rtu
-                .run(tx2)
-                .await
-                .unwrap()
+            rszurro.modbus_rtu.run(tx2).await.unwrap()
         }));
     }
 
@@ -85,9 +81,9 @@ async fn main() {
         // start gpio monitor
         let tx2 = tx.clone();
 
-        handles.push(tokio::spawn(async move {
-            rszurro.gpio.run(tx2).await.unwrap()
-        }));
+        handles.push(tokio::spawn(
+            async move { rszurro.gpio.run(tx2).await.unwrap() },
+        ));
     }
 
     #[cfg(feature = "lmsensors")]

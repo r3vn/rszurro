@@ -18,14 +18,14 @@ This will produce a single executable file in the target/release directory.
 
 ## Configuration
 
-rszurro load settings from a json file, an example configuration can be found on [config.json](https://github.com/r3vn/rszurro/blob/main/config.json) from this repository.
+rszurro load settings from a yaml file, an example configuration can be found on [config.yaml](https://github.com/r3vn/rszurro/blob/main/config.yaml) from this repository.
 
 ## Usage
 
 To use rszurro, you need to provide the path of your configuration file, as follows:
 
 ```sh
-target/release/rszurro /path/to/config.json
+target/release/rszurro /path/to/config.yaml
 ```
 
 Once operational, rszurro will consistently monitor the designated sensors data for any alterations, promptly transmitting their updated information to the configured endpoints.

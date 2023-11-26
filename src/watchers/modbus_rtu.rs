@@ -1,11 +1,11 @@
+use log::{error, trace};
 use serde_derive::{Deserialize, Serialize};
+use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
 use tokio_modbus::prelude::{rtu, Reader};
 use tokio_serial::SerialStream;
-use tokio::sync::mpsc;
-use log::{trace, error};
 
-use crate::{update_sensor, Sensor, SensorValue, SensorUpdate};
+use crate::{update_sensor, Sensor, SensorUpdate, SensorValue};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Slave {
@@ -61,21 +61,24 @@ impl ModbusRTU {
 
                             // Modbus error
                             Err(e) => {
-                                error!("{} {} error reading modbus register: {}", &slave.name, &sensor.name, &e);
+                                error!(
+                                    "{} {} error reading modbus register: {}",
+                                    &slave.name, &sensor.name, &e
+                                );
                                 continue;
                             }
                         }
                     };
-                    trace!("{} {} => {}{}", &slave.name, &sensor.name, &sensor_value, &sensor.unit);
+                    trace!(
+                        "{} {} => {}{}",
+                        &slave.name,
+                        &sensor.name,
+                        &sensor_value,
+                        &sensor.unit
+                    );
 
                     // Send data to HA
-                    update_sensor(
-                        &tx,
-                        &slave.name,
-                        sensor,
-                        SensorValue::IsF64(sensor_value),
-                    )
-                    .await;
+                    update_sensor(&tx, &slave.name, sensor, SensorValue::IsF64(sensor_value)).await;
 
                     // prevent issues with serial
                     sleep(Duration::from_millis(self.serialport.sleep_ms)).await;

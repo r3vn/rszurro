@@ -1,11 +1,11 @@
+pub mod cache_manager;
 pub mod endpoints;
 pub mod watchers;
-pub mod cache_manager;
 
 pub use cache_manager::CacheManager;
 
-use tokio::sync::mpsc;
 use serde_derive::{Deserialize, Serialize};
+use tokio::sync::mpsc;
 
 #[derive(clap::Parser)]
 pub struct Cli {
@@ -13,7 +13,7 @@ pub struct Cli {
     #[arg(value_name = "FILE", required = true)]
     pub config: String,
 
-    // verbosity level 
+    // verbosity level
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
@@ -51,10 +51,7 @@ pub struct Endpoint {
     pub api_key: String,
 }
 impl Endpoint {
-    pub async fn send(
-        &self,
-        update: SensorUpdate
-    ) {
+    pub async fn send(&self, update: SensorUpdate) {
         // initialize endpoint
         let edp = match self.name.as_str() {
             "homeassistant" => endpoints::Homeassistant {
@@ -65,9 +62,7 @@ impl Endpoint {
         };
 
         // send data
-        tokio::spawn(async move{
-            edp.send(update).await
-        });
+        tokio::spawn(async move { edp.send(update).await });
     }
 }
 
@@ -99,7 +94,7 @@ pub struct Sensor {
 
 #[derive(Clone)]
 pub struct SensorUpdate {
-    pub device_name: String, 
+    pub device_name: String,
     pub sensor: Sensor,
     pub value: SensorValue,
 }
@@ -133,7 +128,7 @@ pub async fn update_sensor(
     let update = SensorUpdate {
         device_name: device_name.to_string(),
         sensor: sensor.clone(),
-        value
+        value,
     };
 
     // send sensor update to cache channel
@@ -150,10 +145,9 @@ pub fn update_sensor_sync(
     let update = SensorUpdate {
         device_name: device_name.to_string(),
         sensor: sensor.clone(),
-        value
+        value,
     };
 
     // send sensor update to cache channel
     tx.blocking_send(update).unwrap();
 }
-
