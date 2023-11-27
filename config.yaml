@@ -1,189 +1,166 @@
 ---
 endpoints:
-- name: homeassistant
-  enabled: true
-  url: http://homeassistant.local:8123
-  api_key: "<YOUR_API_KEY>"
+# Home Assistant endpoint configuratino
+#
+#- endpoint: homeassistant
+#  name: homeassistant
+#  url: http://homeassistant.local:8123
+#  api_key: "<YOUR_API_KEY>"
 
-sysinfo:
-  enabled: true
-  device_name: rpi3garage
-  uptime: true
-  loadavg: true
+watchers:
+- watcher: sysinfo
+  name: rpi3
   sleep_ms: 1200000
 
-lm_sensors:
-  enabled: true
-  device_name: rpi3garage
+- watcher: lmsensors
+  name: rpi3
   temperature_unit: "°C"
   sleep_ms: 5000
 
-gpio:
-  enabled: true
-  gpio_chip: gpiochip0
-  sensors:
-  - name: rain_sensor
-    friendly_name: Sensore Pioggia
-    address: 11
+# Example configuration of a rain sensor using raspberry's gpio
+#
+#- watcher: gpio
+#  name: rpi3
+#  chip: gpiochip0
+#  sensors:
+#  - name: rain_sensor
+#    friendly_name: Sensore Pioggia
+#    address: 11
 
-modbus_rtu:
-  enabled: false
-  serialport:
-    tty_path: "/dev/ttyUSB0"
-    baud_rate: 9600
-    sleep_ms: 800
-  slaves:
-  - name: HYD6000ZSSHP
-    address: 1
-    sensors:
-    - name: energy_generation_today
-      friendly_name: Produzione solare (oggi)
-      address: 1669
-      accuracy: 0.01
-      unit: kWh
-      state_class: total_increasing
-      device_class: energy
-
-    - name: energy_generation_total
-      friendly_name: Produzione Solare Totale
-      address: 1671
-      accuracy: 0.1
-      unit: kWh
-      state_class: total
-      device_class: energy
-
-    - name: energy_purchase_today
-      friendly_name: Energia Comprata Oggi
-      address: 1677
-      accuracy: 0.01
-      unit: kWh
-      state_class: total_increasing
-      device_class: energy
-
-    - name: energy_purchase_total
-      address: 1679
-      accuracy: 0.1
-      unit: kWh
-      state_class: total
-      friendly_name: Energia Comprata Totale
-      device_class: energy
-
-    - name: energy_sell_today
-      friendly_name: Energia Venduta Oggi
-      address: 1681
-      accuracy: 0.01
-      unit: kWh
-      state_class: total_increasing
-      device_class: energy
-
-    - name: energy_sell_total
-      friendly_name: Energia Vendura Totale
-      address: 1683
-      accuracy: 0.1
-      unit: kWh
-      state_class: total
-      device_class: energy
-
-    - name: load_consumption_today
-      friendly_name: Energia Consumata Offgrid (oggi)
-      address: 1672
-      accuracy: 0.01
-      unit: kWh
-      state_class: total_increasing
-      device_class: energy
-
-    - name: pv_power_pv1
-      friendly_name: Potenza array 1
-      address: 1414
-      accuracy: 0.01
-      unit: kW
-      state_class: measurement
-      device_class: power
-
-    - name: pv_power_pv2
-      friendly_name: Potenza array 2
-      address: 1417
-      accuracy: 0.01
-      unit: kW
-      state_class: measurement
-      device_class: power
-
-    - name: battery_energy_in_today
-      address: 1685
-      accuracy: 0.01
-      unit: kWh
-      state_class: total_increasing
-      friendly_name: Batteria Import Oggi
-      device_class: energy
-
-    - name: battery_energy_out_today
-      address: 1689
-      accuracy: 0.01
-      unit: kWh
-      state_class: total_increasing
-      friendly_name: Batteria Export Oggi
-      device_class: energy
-
-    - name: battery_current_charge
-      friendly_name: Carica Batteria Accumulo
-      address: 1544
-      accuracy: 1
-      unit: "%"
-      state_class: ''
-      device_class: battery
-
-    - name: battery_health
-      friendly_name: Salute Batteria Accumulo
-      address: 1545
-      accuracy: 1
-      unit: "%"
-      state_class: ''
-      device_class: battery
-
-    - name: battery_temperature
-      friendly_name: Temperatura Batteria Accumulo
-      address: 1543
-      accuracy: 1
-      unit: "°C"
-      state_class: measurement
-      device_class: temperature
-
-    - name: inverter_active_power
-      friendly_name: ''
-      address: 1157
-      accuracy: 10
-      unit: W
-      state_class: measurement
-      device_class: power
-
-    - name: inverter_ext_temperature
-      friendly_name: Temperatura esterna inverter
-      address: 1050
-      accuracy: 1
-      unit: "°C"
-      state_class: measurement
-      device_class: temperature
-
-    - name: inverter_int_temperature
-      friendly_name: Temperatura interna inverter
-      address: 1048
-      accuracy: 1
-      unit: "°C"
-      state_class: measurement
-      device_class: temperature
-
-    - name: inverter_sys_state
-      friendly_name: Stato inverter
-      address: 1028
-      accuracy: 1
-      unit: ''
-      state_class: ''
-      device_class: state
-
-    - name: inverter_home_power_meter
-      friendly_name: Consumo attuale
-      address: 1199
-      accuracy: 10
-      unit: W
-      state_class: measurement
-      device_class: power
+# Example configuration for modbus_rtu on a pv inverter
+#
+#- watcher: modbus_rtu
+#  name: HYD6000ZSSHP
+#  path: /dev/ttyUSB0 # serial port device path
+#  baud_rate: 9600 # serial port baud rate
+#  sleep_ms: 800 # sleep between readings
+#  slaves: 
+#  - address: 1 
+#    sensors:
+#    - name: energy_generation_today
+#      friendly_name: Produzione solare (oggi)
+#      address: 1669
+#      accuracy: 0.01
+#      unit: kWh
+#      state_class: total_increasing
+#      device_class: energy
+#
+#    - name: energy_generation_total
+#      friendly_name: Produzione Solare Totale
+#      address: 1671
+#      accuracy: 0.1
+#      unit: kWh
+#      state_class: total
+#      device_class: energy
+#
+#    - name: energy_purchase_today
+#      friendly_name: Energia Comprata Oggi
+#      address: 1677
+#      accuracy: 0.01
+#      unit: kWh
+#      state_class: total_increasing
+#      device_class: energy
+#
+#    - name: energy_purchase_total
+#      address: 1679
+#      accuracy: 0.1
+#      unit: kWh
+#      state_class: total
+#      friendly_name: Energia Comprata Totale
+#      device_class: energy
+#
+#    - name: energy_sell_today
+#      friendly_name: Energia Venduta Oggi
+#      address: 1681
+#      accuracy: 0.01
+#      unit: kWh
+#      state_class: total_increasing
+#      device_class: energy
+#
+#    - name: energy_sell_total
+#      friendly_name: Energia Vendura Totale
+#      address: 1683
+#      accuracy: 0.1
+#      unit: kWh
+#      state_class: total
+#      device_class: energy
+#
+#    - name: pv_power_pv1
+#      friendly_name: Potenza array 1
+#      address: 1414
+#      accuracy: 0.01
+#      unit: kW
+#      state_class: measurement
+#      device_class: power
+#
+#    - name: pv_power_pv2
+#      friendly_name: Potenza array 2
+#      address: 1417
+#      accuracy: 0.01
+#      unit: kW
+#      state_class: measurement
+#      device_class: power
+#
+#    - name: battery_energy_in_today
+#      address: 1685
+#      accuracy: 0.01
+#      unit: kWh
+#      state_class: total_increasing
+#      friendly_name: Batteria Import Oggi
+#      device_class: energy
+#
+#    - name: battery_energy_out_today
+#      address: 1689
+#      accuracy: 0.01
+#      unit: kWh
+#      state_class: total_increasing
+#      friendly_name: Batteria Export Oggi
+#      device_class: energy
+#
+#    - name: battery_current_charge
+#      friendly_name: Carica Batteria Accumulo
+#      address: 1544
+#      accuracy: 1
+#      unit: "%"
+#      state_class: ''
+#      device_class: battery
+#
+#    - name: battery_temperature
+#      friendly_name: Temperatura Batteria Accumulo
+#      address: 1543
+#      accuracy: 1
+#      unit: "°C"
+#      state_class: measurement
+#      device_class: temperature
+#
+#    - name: inverter_ext_temperature
+#      friendly_name: Temperatura esterna inverter
+#      address: 1050
+#      accuracy: 1
+#      unit: "°C"
+#      state_class: measurement
+#      device_class: temperature
+#
+#    - name: inverter_int_temperature
+#      friendly_name: Temperatura interna inverter
+#      address: 1048
+#      accuracy: 1
+#      unit: "°C"
+#      state_class: measurement
+#      device_class: temperature
+#
+#    - name: inverter_sys_state
+#      friendly_name: Stato inverter
+#      address: 1028
+#      accuracy: 1
+#      unit: ''
+#      state_class: ''
+#      device_class: state
+#
+#    - name: inverter_home_power_meter
+#      friendly_name: Consumo attuale
+#      address: 1199
+#      accuracy: 10
+#      unit: W
+#      state_class: measurement
+#      device_class: power

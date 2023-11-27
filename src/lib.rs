@@ -22,27 +22,16 @@ pub struct Cli {
     pub nocache: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize)]
 pub struct ConfigFile {
     pub endpoints: Vec<Endpoint>,
-
-    #[cfg(feature = "modbus-rtu")]
-    pub modbus_rtu: watchers::ModbusRTU,
-
-    #[cfg(feature = "lmsensors")]
-    pub lm_sensors: watchers::LMSensors,
-
-    #[cfg(feature = "sysinfo")]
-    pub sysinfo: watchers::SysInfo,
-
-    #[cfg(feature = "gpio")]
-    pub gpio: watchers::Gpio,
+    pub watchers: Vec<Watcher>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Endpoint {
+    pub endpoint: String,
     pub name: String,
-    pub enabled: bool,
 
     #[serde(default)]
     pub url: String,
@@ -51,26 +40,86 @@ pub struct Endpoint {
     pub api_key: String,
 }
 impl Endpoint {
-    pub async fn send(&self, update: SensorUpdate) {
+    pub async fn run(&self, update: SensorUpdate) -> tokio::task::JoinHandle<()> {
         // initialize endpoint
-        let edp = match self.name.as_str() {
-            "homeassistant" => endpoints::Homeassistant {
-                url: self.url.clone(),
-                api_key: self.api_key.clone(),
-            },
-            &_ => todo!(),
-        };
-
-        // send data
-        tokio::spawn(async move { edp.send(update).await });
+        let endpoint = self.clone();
+        tokio::spawn(async move {
+            match endpoint.endpoint.as_str() {
+                "homeassistant" => endpoints::homeassistant::send(endpoint, update).await,
+                &_ => todo!(),
+            };
+        })
     }
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct Watcher {
+    pub name: String, // replace device_name !!!
+    pub watcher: String,
+
+    #[serde(default)]
+    pub sensors: Vec<Sensor>,
+
+    #[serde(default)]
+    pub slaves: Vec<Slave>,
+
+    #[serde(default = "empty_string")]
+    pub chip: String,
+
+    #[serde(default = "empty_string")]
+    pub path: String,
+
+    #[serde(default)]
+    pub baud_rate: u32,
+
+    #[serde(default)]
+    pub sleep_ms: u64,
+
+    #[serde(default = "empty_string")]
+    pub temperature_unit: String,
+}
+impl Watcher {
+    pub async fn run(&self, tx: mpsc::Sender<SensorUpdate>) -> tokio::task::JoinHandle<()> {
+        // run a watcher
+        let watcher = self.clone();
+
+        match watcher.watcher.as_str() {
+            #[cfg(feature = "gpio")]
+            "gpio" => tokio::spawn(async move { watchers::gpio::run(watcher, tx).await.unwrap() }),
+
+            #[cfg(feature = "lmsensors")]
+            "lm_sensors" => {
+                tokio::task::spawn_blocking(move || watchers::lm_sensors::run(watcher, tx).unwrap())
+            }
+
+            #[cfg(feature = "modbus-rtu")]
+            "modbus_rtu" => {
+                tokio::spawn(async move { watchers::modbus_rtu::run(watcher, tx).await.unwrap() })
+            }
+
+            #[cfg(feature = "sysinfo")]
+            "sysinfo" => {
+                tokio::spawn(async move { watchers::sysinfo::run(watcher, tx).await.unwrap() })
+            }
+            &_ => todo!(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Default, Clone)]
+pub struct Slave {
+    #[serde(default)]
+    pub sensors: Vec<Sensor>,
+
+    #[serde(default)]
+    pub address: u8,
 }
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
 pub struct Sensor {
     pub name: String,
 
-    #[serde(default = "sensor_empty_string")]
+    #[serde(default = "empty_string")]
     pub friendly_name: String,
 
     #[serde(default = "sensor_default_bool")]
@@ -82,13 +131,13 @@ pub struct Sensor {
     #[serde(default = "sensor_default_accuracy")]
     pub accuracy: f64,
 
-    #[serde(default = "sensor_empty_string")]
+    #[serde(default = "empty_string")]
     pub unit: String,
 
-    #[serde(default = "sensor_empty_string")]
+    #[serde(default = "empty_string")]
     pub state_class: String,
 
-    #[serde(default = "sensor_empty_string")]
+    #[serde(default = "empty_string")]
     pub device_class: String,
 }
 
@@ -106,7 +155,7 @@ pub enum SensorValue {
     IsString(String),
 }
 
-fn sensor_empty_string() -> String {
+fn empty_string() -> String {
     "".to_string()
 }
 
