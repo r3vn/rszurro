@@ -4,6 +4,7 @@ pub mod watchers;
 
 pub use cache_manager::CacheManager;
 
+use log::error;
 use serde_derive::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -38,6 +39,9 @@ pub struct Endpoint {
 
     #[serde(default)]
     pub api_key: String,
+
+    #[serde(default)]
+    pub port: u16,
 }
 impl Endpoint {
     pub async fn run(&self, update: SensorUpdate) -> tokio::task::JoinHandle<()> {
@@ -45,8 +49,13 @@ impl Endpoint {
         let endpoint = self.clone();
         tokio::spawn(async move {
             match endpoint.endpoint.as_str() {
+                #[cfg(feature = "endpoint_homeassistant")]
                 "homeassistant" => endpoints::homeassistant::send(endpoint, update).await,
-                &_ => todo!(),
+
+                _ => {
+                    error!("unsupported endpoint: {}", &endpoint.endpoint);
+                    false
+                }
             };
         })
     }

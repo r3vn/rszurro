@@ -13,7 +13,7 @@ priority = "optional"
 assets = [
     ["target/release/rszurro", "/usr/bin/rszurro", "755"],
     ["debian/rszurro.service", "/lib/systemd/system/rszurro.service", "644"],
-    ["config.json", "/etc/rszurro/config.json", "644"],
+    ["config.yaml", "/etc/rszurro/config.yaml", "644"],
 ]
 maintainer-scripts = "debian/scripts"
 
@@ -28,14 +28,15 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 log = "0.4"
 env_logger = "0.10"
-reqwest = { version = "0.11", features = ["json"] }
 clap = { version = "4.4", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json"], optional = true }
 lm-sensors = { version = "0.1", optional = true }
 tokio-gpiod = { version = "0.2", optional = true }
 
 [features]
-default = ["modbus-rtu","sysinfo","lmsensors","gpio"]
+default = ["modbus-rtu","sysinfo","lmsensors","gpio", "homeassistant"]
 modbus-rtu = ["dep:tokio-modbus","dep:tokio-serial"]
 sysinfo = []
 lmsensors = ["dep:lm-sensors"]
 gpio = ["dep:tokio-gpiod"]
+homeassistant = ["dep:reqwest","dep:serde_json"]
