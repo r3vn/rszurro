@@ -1,6 +1,6 @@
 use log::{error, trace};
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{sleep, Duration, timeout};
 use tokio_modbus::prelude::{rtu, Reader};
 use tokio_serial::SerialStream;
 
@@ -24,28 +24,39 @@ pub async fn run(
             for sensor in &slave.sensors {
                 // Read sensor value from modbus
                 let sensor_value = {
-                    let modbus_value = ctx.read_holding_registers(sensor.address, 1).await;
+                    let timeout_reg_value = timeout( // prevent some hangs while reading registers
+                        Duration::from_secs(5), 
+                        ctx.read_holding_registers(sensor.address, 1)
+                    ).await;
 
-                    match modbus_value {
-                        // Convert modbus register's value to float and truncate it at two digit
-                        Ok(rsp) => {
-                            f64::trunc(
+                    match timeout_reg_value {
+                        Ok(modbus_value) => match modbus_value {
+                            // Convert modbus register's value to float and truncate it at two digit
+                            Ok(rsp) => f64::trunc(
                                 rsp.iter().map(|&val| val as i64).sum::<i64>() as f64
                                     * sensor.accuracy
                                     * 100.0,
-                            ) / 100.0
-                        }
+                            ) / 100.0,
 
-                        // Modbus error
-                        Err(e) => {
+                            Err(e) => { // modbus error
+                                error!(
+                                    "{} {} error reading modbus register: {}",
+                                    &watcher.name, &sensor.name, &e
+                                );
+                                continue;
+                            }
+                        },
+
+                        Err(e) => { // modbus timeout
                             error!(
-                                "{} {} error reading modbus register: {}",
+                                "{} {} timeout reading modbus register: {}",
                                 &watcher.name, &sensor.name, &e
                             );
                             continue;
                         }
                     }
                 };
+
                 trace!(
                     "{} {} => {}{}",
                     &watcher.name,
