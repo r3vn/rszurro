@@ -1,6 +1,6 @@
 use log::{error, trace};
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration, timeout};
+use tokio::time::{sleep, timeout, Duration};
 use tokio_modbus::prelude::{rtu, Reader};
 use tokio_serial::SerialStream;
 
@@ -24,21 +24,26 @@ pub async fn run(
             for sensor in &slave.sensors {
                 // Read sensor value from modbus
                 let sensor_value = {
-                    let timeout_reg_value = timeout( // prevent some hangs while reading registers
-                        Duration::from_secs(5), 
-                        ctx.read_holding_registers(sensor.address, 1)
-                    ).await;
+                    let timeout_reg_value = timeout(
+                        // prevent some hangs while reading registers
+                        Duration::from_secs(5),
+                        ctx.read_holding_registers(sensor.address, 1),
+                    )
+                    .await;
 
                     match timeout_reg_value {
                         Ok(modbus_value) => match modbus_value {
                             // Convert modbus register's value to float and truncate it at two digit
-                            Ok(rsp) => f64::trunc(
-                                rsp.iter().map(|&val| val as i64).sum::<i64>() as f64
-                                    * sensor.accuracy
-                                    * 100.0,
-                            ) / 100.0,
+                            Ok(rsp) => {
+                                f64::trunc(
+                                    rsp.iter().map(|&val| val as i64).sum::<i64>() as f64
+                                        * sensor.accuracy
+                                        * 100.0,
+                                ) / 100.0
+                            }
 
-                            Err(e) => { // modbus error
+                            Err(e) => {
+                                // modbus error
                                 error!(
                                     "{} {} error reading modbus register: {}",
                                     &watcher.name, &sensor.name, &e
@@ -47,7 +52,8 @@ pub async fn run(
                             }
                         },
 
-                        Err(e) => { // modbus timeout
+                        Err(e) => {
+                            // modbus timeout
                             error!(
                                 "{} {} timeout reading modbus register: {}",
                                 &watcher.name, &sensor.name, &e
@@ -69,7 +75,7 @@ pub async fn run(
                 update_sensor(&tx, &watcher.name, sensor, SensorValue::IsF64(sensor_value)).await;
 
                 // prevent issues with serial
-                sleep(Duration::from_millis(watcher.sleep_ms)).await;
+                sleep(Duration::from_millis(watcher.scan_interval)).await;
             }
 
             // Disconnect the client

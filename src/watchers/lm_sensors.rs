@@ -74,7 +74,7 @@ pub fn run(
                 }
             }
             // sleep between readings
-            thread::sleep(time::Duration::from_millis(watcher.sleep_ms));
+            thread::sleep(time::Duration::from_millis(watcher.scan_interval));
         }
     }
 }

@@ -40,6 +40,6 @@ pub async fn run(
         update_sensor(&tx, &watcher.name, &sensor, SensorValue::IsBool(value)).await;
 
         // sleep for next update
-        sleep(Duration::from_millis(watcher.sleep_ms)).await;
+        sleep(Duration::from_millis(watcher.scan_interval)).await;
     }
 }

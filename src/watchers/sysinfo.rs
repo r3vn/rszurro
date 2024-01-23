@@ -40,6 +40,6 @@ pub async fn run(
         .await;
 
         // sleep
-        sleep(Duration::from_millis(watcher.sleep_ms)).await;
+        sleep(Duration::from_millis(watcher.scan_interval)).await;
     }
 }

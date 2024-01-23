@@ -63,7 +63,7 @@ impl Endpoint {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Watcher {
-    pub name: String, // replace device_name !!!
+    pub name: String,
     pub watcher: String,
 
     #[serde(default)]
@@ -85,7 +85,7 @@ pub struct Watcher {
     pub baud_rate: u32,
 
     #[serde(default)]
-    pub sleep_ms: u64,
+    pub scan_interval: u64,
 
     #[serde(default = "empty_string")]
     pub temperature_unit: String,

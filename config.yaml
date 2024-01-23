@@ -10,17 +10,19 @@ endpoints:
 watchers:
 - watcher: sysinfo
   name: rpi3
-  sleep_ms: 1200000
+  scan_interval: 1200000
 
 - watcher: lmsensors
   name: rpi3
   temperature_unit: "°C"
-  sleep_ms: 5000
+  scan_interval: 5000
 
-- watcher: icmp
-  name: test
-  ipv4: "127.0.0.1"
-  sleep_ms: 5000
+# icmp require special capabilities: 
+#   setcap cap_net_raw+ep /usr/bin/rszurro
+#- watcher: icmp
+#  name: localhost
+#  ipv4: "127.0.0.1"
+#  scan_interval: 5000
 
 # Example configuration of a rain sensor using raspberry's gpio
 #
@@ -38,7 +40,7 @@ watchers:
 #  name: HYD6000ZSSHP
 #  path: /dev/ttyUSB0 # serial port device path
 #  baud_rate: 9600 # serial port baud rate
-#  sleep_ms: 800 # sleep between readings
+#  scan_interval: 800 # sleep between readings
 #  slaves: 
 #  - address: 1 
 #    sensors:
