@@ -1,4 +1,3 @@
-use lm_sensors::prelude::*;
 use log::trace;
 use std::{thread, time};
 use tokio::sync::mpsc;

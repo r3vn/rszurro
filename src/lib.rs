@@ -49,7 +49,7 @@ impl Endpoint {
         let endpoint = self.clone();
         tokio::spawn(async move {
             match endpoint.endpoint.as_str() {
-                #[cfg(feature = "endpoint_homeassistant")]
+                #[cfg(feature = "homeassistant")]
                 "homeassistant" => endpoints::homeassistant::send(endpoint, update).await,
 
                 _ => {
