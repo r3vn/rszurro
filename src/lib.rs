@@ -73,6 +73,9 @@ pub struct Watcher {
     pub slaves: Vec<Slave>,
 
     #[serde(default = "empty_string")]
+    pub ipv4: String,
+
+    #[serde(default = "empty_string")]
     pub chip: String,
 
     #[serde(default = "empty_string")]
@@ -110,6 +113,10 @@ impl Watcher {
             "sysinfo" => {
                 tokio::spawn(async move { watchers::sysinfo::run(watcher, tx).await.unwrap() })
             }
+
+            #[cfg(feature = "icmp")]
+            "icmp" => tokio::spawn(async move { watchers::icmp::run(watcher, tx).await.unwrap() }),
+
             &_ => todo!(),
         }
     }

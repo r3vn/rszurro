@@ -1,6 +1,6 @@
 ---
 endpoints:
-# Home Assistant endpoint configuratino
+# Home Assistant endpoint configuration
 #
 #- endpoint: homeassistant
 #  name: homeassistant
@@ -15,6 +15,11 @@ watchers:
 - watcher: lmsensors
   name: rpi3
   temperature_unit: "°C"
+  sleep_ms: 5000
+
+- watcher: icmp
+  name: test
+  ipv4: "127.0.0.1"
   sleep_ms: 5000
 
 # Example configuration of a rain sensor using raspberry's gpio

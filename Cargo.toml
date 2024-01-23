@@ -22,6 +22,7 @@ tokio = { version = "1.35", features = ["rt", "rt-multi-thread", "macros", "time
 tokio-modbus = { version = "0.10", default-features = false, features = ["rtu"], optional = true }
 tokio-serial = { version = "5.4", optional = true }
 tokio-gpiod = { version = "0.2", optional = true }
+tokio-icmp-echo = { version = "0.4", optional = true }
 futures = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
@@ -34,9 +35,10 @@ reqwest = { version = "0.11", features = ["json"], optional = true }
 lm-sensors = { version = "0.2", optional = true }
 
 [features]
-default = ["modbus-rtu", "sysinfo", "lmsensors", "gpio", "homeassistant"]
+default = ["modbus-rtu", "sysinfo", "lmsensors", "gpio", "homeassistant", "icmp"]
 modbus-rtu = ["dep:tokio-modbus","dep:tokio-serial"]
 sysinfo = []
 lmsensors = ["dep:lm-sensors"]
 gpio = ["dep:tokio-gpiod"]
 homeassistant = ["dep:reqwest","dep:serde_json"]
+icmp = ["dep:tokio-icmp-echo"]

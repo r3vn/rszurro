@@ -9,3 +9,6 @@ pub mod sysinfo;
 
 #[cfg(feature = "gpio")]
 pub mod gpio;
+
+#[cfg(feature = "icmp")]
+pub mod icmp;
