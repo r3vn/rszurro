@@ -2,31 +2,31 @@
 endpoints:
 # Home Assistant endpoint configuration
 #
-#- endpoint: homeassistant
+#- platform: homeassistant
 #  name: homeassistant
 #  url: http://homeassistant.local:8123
 #  api_key: "<YOUR_API_KEY>"
 
 watchers:
-- watcher: sysinfo
+- platform: sysinfo
   name: rpi3
   scan_interval: 1200000
 
-- watcher: lmsensors
+- platform: lmsensors
   name: rpi3
   temperature_unit: "°C"
   scan_interval: 5000
 
 # icmp require special capabilities: 
 #   setcap cap_net_raw+ep /usr/bin/rszurro
-#- watcher: icmp
+#- platform: icmp
 #  name: localhost
-#  ipv4: "127.0.0.1"
+#  host: "127.0.0.1"
 #  scan_interval: 5000
 
 # Example configuration of a rain sensor using raspberry's gpio
 #
-#- watcher: gpio
+#- platform: gpio
 #  name: rpi3
 #  chip: gpiochip0
 #  sensors:
@@ -36,7 +36,7 @@ watchers:
 
 # Example configuration for modbus_rtu on a pv inverter
 #
-#- watcher: modbus_rtu
+#- platform: modbus_rtu
 #  name: HYD6000ZSSHP
 #  path: /dev/ttyUSB0 # serial port device path
 #  baud_rate: 9600 # serial port baud rate

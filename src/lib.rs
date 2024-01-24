@@ -31,7 +31,7 @@ pub struct ConfigFile {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Endpoint {
-    pub endpoint: String,
+    pub platform: String,
     pub name: String,
 
     #[serde(default)]
@@ -48,12 +48,12 @@ impl Endpoint {
         // initialize endpoint
         let endpoint = self.clone();
         tokio::spawn(async move {
-            match endpoint.endpoint.as_str() {
+            match endpoint.platform.as_str() {
                 #[cfg(feature = "homeassistant")]
                 "homeassistant" => endpoints::homeassistant::send(endpoint, update).await,
 
                 _ => {
-                    error!("unsupported endpoint: {}", &endpoint.endpoint);
+                    error!("unsupported endpoint platform: {}", &endpoint.platform);
                     false
                 }
             };
@@ -64,7 +64,7 @@ impl Endpoint {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Watcher {
     pub name: String,
-    pub watcher: String,
+    pub platform: String,
 
     #[serde(default)]
     pub sensors: Vec<Sensor>,
@@ -73,7 +73,7 @@ pub struct Watcher {
     pub slaves: Vec<Slave>,
 
     #[serde(default = "empty_string")]
-    pub ipv4: String,
+    pub host: String,
 
     #[serde(default = "empty_string")]
     pub chip: String,
@@ -95,7 +95,7 @@ impl Watcher {
         // run a watcher
         let watcher = self.clone();
 
-        match watcher.watcher.as_str() {
+        match watcher.platform.as_str() {
             #[cfg(feature = "gpio")]
             "gpio" => tokio::spawn(async move { watchers::gpio::run(watcher, tx).await.unwrap() }),
 

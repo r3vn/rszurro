@@ -10,7 +10,7 @@ pub async fn run(
     watcher: Watcher,
     tx: mpsc::Sender<SensorUpdate>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let address = IpAddr::from_str(&watcher.ipv4).unwrap();
+    let address = IpAddr::from_str(&watcher.host).unwrap();
     let pinger = Pinger::new().await.unwrap();
 
     loop {
