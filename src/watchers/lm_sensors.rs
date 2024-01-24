@@ -45,8 +45,7 @@ pub fn run(
                         trace!("{} {} => {}", chip_name, sub_feature, value);
 
                         // get sensor name from lmsensors
-                        let sensor_name_str =
-                            sub_feature.clone().name().unwrap().unwrap().to_string();
+                        let sensor_name_str = sub_feature.name().unwrap().unwrap().to_string();
 
                         // trunc float value to one digit
                         let float_value = f64::trunc(value.raw_value() * 10.0) / 10.0;

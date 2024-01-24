@@ -26,8 +26,8 @@ pub async fn run(
 
         // make a sensor
         let sensor = Sensor {
-            name: format!("{}", &watcher.name),
-            friendly_name: format!("{}", &watcher.name),
+            name: watcher.name.clone(),
+            friendly_name: watcher.name.clone(),
             address: 0,
             is_bool: false,
             accuracy: 0.0,
