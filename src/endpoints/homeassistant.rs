@@ -1,43 +1,13 @@
-use log::{debug, error};
-use serde_json::json;
-
 use crate::{Endpoint, SensorUpdate, SensorValue};
+use log::{debug, error};
 
 pub async fn send(endpoint: Endpoint, update: SensorUpdate) -> bool {
-    // build json
-    let mut post_data = json!({
-        "attributes": {
-            "unit_of_measurement": update.sensor.unit,
-            "device_class": update.sensor.device_class,
-            "friendly_name": update.sensor.friendly_name,
-            "state_class": update.sensor.state_class
-        }
-    });
+    // guess sensor type
+    let prefix = match update.value {
+        SensorValue::IsBool(_) => "binary_sensor",
+        _ => "sensor",
+    };
 
-    // set sensor prefix
-    let prefix;
-
-    match update.value {
-        SensorValue::IsBool(value) => {
-            post_data["state"] = serde_json::Value::String(if value {
-                "on".to_string()
-            } else {
-                "off".to_string()
-            });
-            prefix = "binary_sensor";
-        }
-        SensorValue::IsF64(value) => {
-            post_data["state"] = match zero_decimal(value).await {
-                true => (value as i64).into(), // add state as i64
-                false => value.into(),         // add state as f64
-            };
-            prefix = "sensor";
-        }
-        SensorValue::IsString(value) => {
-            post_data["state"] = serde_json::Value::String(value);
-            prefix = "sensor";
-        }
-    }
     // home assistant url
     let ha_url = format!(
         "{}/api/states/{}.{}_{}",
@@ -51,7 +21,7 @@ pub async fn send(endpoint: Endpoint, update: SensorUpdate) -> bool {
         .header("Authorization", "Bearer ".to_owned() + &endpoint.api_key);
 
     // send sensor value
-    match client.json(&post_data).send().await {
+    match client.json(&update.get_json().await).send().await {
         Err(e) => {
             error!("{}: {}", &update.sensor.name, e);
             false
@@ -61,10 +31,4 @@ pub async fn send(endpoint: Endpoint, update: SensorUpdate) -> bool {
             true
         }
     }
-}
-
-async fn zero_decimal(float_value: f64) -> bool {
-    let decimal = float_value.fract();
-
-    decimal.abs() < std::f64::EPSILON
 }

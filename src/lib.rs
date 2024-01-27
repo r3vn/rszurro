@@ -6,7 +6,8 @@ pub use cache_manager::CacheManager;
 
 use log::error;
 use serde_derive::{Deserialize, Serialize};
-use tokio::sync::mpsc;
+use serde_json::json;
+use tokio::{io::AsyncReadExt, sync::mpsc};
 
 #[derive(clap::Parser)]
 pub struct Cli {
@@ -38,19 +39,47 @@ pub struct Endpoint {
     pub url: String,
 
     #[serde(default)]
+    pub host: String,
+
+    #[serde(default)]
+    pub username: String,
+
+    #[serde(default)]
+    pub password: String,
+
+    #[serde(default)]
     pub api_key: String,
 
     #[serde(default)]
     pub port: u16,
+
+    #[serde(default)]
+    pub raw: bool,
+
+    #[serde(default)]
+    pub prefix: String,
+
+    #[serde(default)]
+    pub ca: String,
+
+    #[serde(default)]
+    pub client_crt: String,
+
+    #[serde(default)]
+    pub client_key: String,
 }
 impl Endpoint {
     pub async fn run(&self, update: SensorUpdate) -> tokio::task::JoinHandle<()> {
         // initialize endpoint
         let endpoint = self.clone();
+
         tokio::spawn(async move {
             match endpoint.platform.as_str() {
                 #[cfg(feature = "homeassistant")]
                 "homeassistant" => endpoints::homeassistant::send(endpoint, update).await,
+
+                #[cfg(feature = "mqtt")]
+                "mqtt" => endpoints::mqtt::send(endpoint, update).await,
 
                 _ => {
                     error!("unsupported endpoint platform: {}", &endpoint.platform);
@@ -72,13 +101,13 @@ pub struct Watcher {
     #[serde(default)]
     pub slaves: Vec<Slave>,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub host: String,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub chip: String,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub path: String,
 
     #[serde(default)]
@@ -87,7 +116,7 @@ pub struct Watcher {
     #[serde(default)]
     pub scan_interval: u64,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub temperature_unit: String,
 }
 impl Watcher {
@@ -135,7 +164,7 @@ pub struct Slave {
 pub struct Sensor {
     pub name: String,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub friendly_name: String,
 
     #[serde(default = "sensor_default_bool")]
@@ -147,13 +176,13 @@ pub struct Sensor {
     #[serde(default = "sensor_default_accuracy")]
     pub accuracy: f64,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub unit: String,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub state_class: String,
 
-    #[serde(default = "empty_string")]
+    #[serde(default)]
     pub device_class: String,
 }
 
@@ -163,16 +192,48 @@ pub struct SensorUpdate {
     pub sensor: Sensor,
     pub value: SensorValue,
 }
+impl SensorUpdate {
+    pub async fn get_json(&self) -> serde_json::Value {
+        // build json
+        let mut data = json!({
+            "attributes": {
+                "unit_of_measurement": self.sensor.unit,
+                "device_class": self.sensor.device_class,
+                "friendly_name": self.sensor.friendly_name,
+                "state_class": self.sensor.state_class
+            }
+        });
+
+        data["state"] = match self.value.clone() {
+            SensorValue::IsBool(value) => serde_json::Value::String(if value {
+                "on".to_string()
+            } else {
+                "off".to_string()
+            }),
+
+            SensorValue::IsF64(value) => match self.zero_decimal(value).await {
+                true => (value as i64).into(), // add state as i64
+                false => value.into(),         // add state as f64
+            },
+
+            SensorValue::IsString(value) => serde_json::Value::String(value),
+        };
+
+        data
+    }
+
+    async fn zero_decimal(&self, float_value: f64) -> bool {
+        let decimal = float_value.fract();
+
+        decimal.abs() < std::f64::EPSILON
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SensorValue {
     IsBool(bool),
     IsF64(f64),
     IsString(String),
-}
-
-fn empty_string() -> String {
-    "".to_string()
 }
 
 fn sensor_default_bool() -> bool {
@@ -215,4 +276,20 @@ pub fn update_sensor_sync(
 
     // send sensor update to cache channel
     tx.blocking_send(update).unwrap();
+}
+
+pub async fn read_file(filename: &String) -> Vec<u8> {
+    // read a file as bytes
+    let mut f = tokio::fs::File::open(&filename)
+        .await
+        .expect("no file found");
+
+    let metadata = tokio::fs::metadata(&filename)
+        .await
+        .expect("unable to read file metadata");
+
+    let mut buffer = vec![0; metadata.len() as usize];
+    f.read_exact(&mut buffer).await.expect("buffer overflow");
+
+    buffer
 }

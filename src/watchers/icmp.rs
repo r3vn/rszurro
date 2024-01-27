@@ -26,7 +26,7 @@ pub async fn run(
 
         // make a sensor
         let sensor = Sensor {
-            name: watcher.name.clone(),
+            name: "status".to_string(),
             friendly_name: watcher.name.clone(),
             address: 0,
             is_bool: false,

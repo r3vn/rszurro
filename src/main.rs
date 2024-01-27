@@ -51,7 +51,7 @@ async fn main() {
     for watcher in rszurro.watchers {
         info!(
             "starting {} as {} watcher ",
-            &watcher.name, &watcher.watcher
+            &watcher.name, &watcher.platform
         );
         let tx2 = tx.clone();
 

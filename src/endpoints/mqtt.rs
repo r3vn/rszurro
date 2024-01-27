@@ -1,0 +1,96 @@
+use crate::{read_file, Endpoint, SensorUpdate};
+use log::{debug, trace};
+use rumqttc::{AsyncClient, Event, Key, MqttOptions, Packet, PubAck, QoS, TlsConfiguration};
+
+pub async fn send(endpoint: Endpoint, update: SensorUpdate) -> bool {
+    // get sensor update data
+    let post_data = match endpoint.raw {
+        // raw = true, send raw sensor value
+        true => update.get_json().await["state"]
+            .to_string()
+            .replace('"', ""),
+        // raw = false send json sensor value
+        false => update.get_json().await.to_string(),
+    };
+
+    // connect to mqtt broker
+    let mut mqttoptions = MqttOptions::new(
+        format!("{}{}", &update.device_name, &update.sensor.name),
+        &endpoint.host,
+        endpoint.port,
+    );
+    let max_packet_size = 1024 * 1024;
+
+    // set mqtt topic, true without prefix.
+    let topic = match endpoint.prefix.is_empty() {
+        true => format!("{}/{}", &update.device_name, &update.sensor.name),
+        false => format!(
+            "{}/{}/{}",
+            &endpoint.prefix, &update.device_name, &update.sensor.name
+        ),
+    };
+
+    // set mqtt options
+    mqttoptions
+        .set_max_packet_size(max_packet_size, max_packet_size)
+        .set_keep_alive(5)
+        .set_request_channel_capacity(3)
+        .set_credentials(endpoint.username, endpoint.password);
+
+    // check TLS client auth and custom ca settings
+    if !endpoint.client_crt.is_empty() || !endpoint.ca.is_empty() {
+        mqttoptions.set_transport(
+            get_tls_transport(&endpoint.ca, &endpoint.client_crt, &endpoint.client_key).await,
+        );
+    }
+
+    // get client and eventloop
+    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+
+    // spawn publish request
+    let client2 = client.clone();
+    tokio::spawn(async move {
+        client2
+            .publish(&topic, QoS::AtLeastOnce, true, post_data)
+            .await
+            .unwrap();
+    });
+
+    // handle coinnection's eventloop
+    while let Ok(notification) = eventloop.poll().await {
+        trace!("got {:?}", &notification);
+
+        match notification {
+            Event::Incoming(Packet::PubAck(PubAck { pkid: _, reason: _ })) => {
+                // PubAck received, disconnect the client and exit the eventloop
+                debug!("{}: updated successfully.", &update.sensor.name);
+                client.disconnect().await.unwrap()
+            }
+            _ => continue,
+        }
+    }
+
+    true
+}
+
+async fn get_tls_transport(
+    ca: &String,
+    client_crt: &String,
+    client_key: &String,
+) -> rumqttc::Transport {
+    // Get a Tls Transport
+    rumqttc::Transport::Tls(TlsConfiguration::Simple {
+        ca: match ca.is_empty() {
+            true => vec![],
+            false => read_file(ca).await,
+        },
+        alpn: None,
+        client_auth: match client_crt.is_empty() {
+            true => None,
+            false => Some((
+                read_file(client_crt).await,
+                Key::RSA(read_file(client_key).await),
+            )),
+        },
+    })
+}

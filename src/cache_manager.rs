@@ -25,7 +25,8 @@ impl CacheManager {
                     );
 
                     // get cached value for this sensor
-                    let last_value = cache.get(&update.sensor.name);
+                    let last_value =
+                        cache.get(&self.get_key(&update.device_name, &update.sensor.name).await);
 
                     // check if value changed from the cached one
                     if last_value != Some(&update.value) {
@@ -49,7 +50,11 @@ impl CacheManager {
                         if self.enabled {
                             // Insert new sensor value to cache
                             let update2 = update.clone();
-                            cache.insert(update2.sensor.name, update2.value);
+                            cache.insert(
+                                self.get_key(&update2.device_name, &update2.sensor.name)
+                                    .await,
+                                update2.value,
+                            );
                             debug!(
                                 "{} {}: {:?} cache updated.",
                                 &update.device_name, &update.sensor.name, &update.value
@@ -60,5 +65,9 @@ impl CacheManager {
                 None => todo!(),
             };
         }
+    }
+
+    async fn get_key(&self, device_name: &String, sensor_name: &String) -> String {
+        format!("{}/{}", device_name, sensor_name)
     }
 }

@@ -1,6 +1,6 @@
 # rszurro
 
-**rszurro** is an IoT-focused daemon written in [Rust](https://www.rust-lang.org) that monitors sensors from various sources and distributes data to different endpoints.
+**rszurro** is a multi-purpose IoT-focused daemon written in [Rust](https://www.rust-lang.org) that monitors sensors from various sources and distributes data to different endpoints.
 
 It is formerly designed to integrate raw sensors that are physically unreachable from an [Home Assistant](https://www.home-assistant.io) server.
 

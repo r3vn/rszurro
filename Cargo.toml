@@ -2,12 +2,12 @@
 name = "rszurro"
 authors = ["Giuseppe Corti <giuseppe.corti@protonmail.com>"]
 license = "MIT"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2021"
 
 [package.metadata.deb]
 depends = "$auto, systemd"
-extended-description = "IoT focused daemon for multi-source sensor data integration and distribution across endpoints."
+extended-description = "multi-purpose, IoT focused daemon for multi-source sensor data integration and distribution across endpoints."
 section = "admin"
 priority = "optional"
 assets = [
@@ -26,19 +26,21 @@ tokio-icmp-echo = { version = "0.4", optional = true }
 futures = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
-serde_json = { version = "1.0", optional = true }
+serde_json = "1.0"
 serde_yaml = "0.9"
 log = "0.4"
 env_logger = "0.11"
 clap = { version = "4.4", features = ["derive"] }
 reqwest = { version = "0.11", features = ["json"], optional = true }
 lm-sensors = { version = "0.2", optional = true }
+rumqttc = { version = "0.23", optional = true }
 
 [features]
-default = ["modbus-rtu", "sysinfo", "lmsensors", "gpio", "homeassistant", "icmp"]
+default = ["modbus-rtu", "sysinfo", "lmsensors", "gpio", "homeassistant", "icmp", "mqtt"]
 modbus-rtu = ["dep:tokio-modbus","dep:tokio-serial"]
 sysinfo = []
 lmsensors = ["dep:lm-sensors"]
 gpio = ["dep:tokio-gpiod"]
-homeassistant = ["dep:reqwest","dep:serde_json"]
+homeassistant = ["dep:reqwest"]
 icmp = ["dep:tokio-icmp-echo"]
+mqtt = ["dep:rumqttc"]

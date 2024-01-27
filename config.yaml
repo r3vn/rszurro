@@ -7,6 +7,19 @@ endpoints:
 #  url: http://homeassistant.local:8123
 #  api_key: "<YOUR_API_KEY>"
 
+#  MQTT endpoint configuration
+#
+#- platform: mqtt
+#  name: mosquitto
+#  host: 10.0.15.10
+#  port: 1883
+#  raw: true
+#  username: testuser 
+#  password: testpass
+#  ca: /tmp/ca.crt
+#  client_crt: /tmp/client.crt
+#  client_key: /tmp/client.key
+
 watchers:
 - platform: sysinfo
   name: rpi3
