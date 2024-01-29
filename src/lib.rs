@@ -57,6 +57,9 @@ pub struct Endpoint {
     pub raw: bool,
 
     #[serde(default)]
+    pub keepalive: u64,
+
+    #[serde(default)]
     pub prefix: String,
 
     #[serde(default)]
@@ -69,7 +72,18 @@ pub struct Endpoint {
     pub client_key: String,
 }
 impl Endpoint {
-    pub async fn run(&self, update: SensorUpdate) -> tokio::task::JoinHandle<()> {
+    pub async fn get_client(&self) -> Client {
+        let endpoint = self.clone();
+
+        match endpoint.platform.as_str() {
+            #[cfg(feature = "mqtt")]
+            "mqtt" => endpoints::mqtt::get_client(endpoint).await,
+
+            _ => Client::None,
+        }
+    }
+
+    pub async fn run(&self, update: SensorUpdate, client: Client) -> tokio::task::JoinHandle<()> {
         // initialize endpoint
         let endpoint = self.clone();
 
@@ -79,7 +93,7 @@ impl Endpoint {
                 "homeassistant" => endpoints::homeassistant::send(endpoint, update).await,
 
                 #[cfg(feature = "mqtt")]
-                "mqtt" => endpoints::mqtt::send(endpoint, update).await,
+                "mqtt" => endpoints::mqtt::send(endpoint, update, client).await,
 
                 _ => {
                     error!("unsupported endpoint platform: {}", &endpoint.platform);
@@ -185,6 +199,21 @@ pub struct Sensor {
     #[serde(default)]
     pub device_class: String,
 }
+impl Sensor {
+    pub async fn new(name: String, friendly_name: String) -> Self {
+        // instantiate a sensor
+        Self {
+            name,
+            friendly_name,
+            address: 0,
+            is_bool: false,
+            accuracy: 0.0,
+            unit: "".to_string(),
+            state_class: "".to_string(),
+            device_class: "".to_string(),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct SensorUpdate {
@@ -227,6 +256,15 @@ impl SensorUpdate {
 
         decimal.abs() < std::f64::EPSILON
     }
+}
+
+#[derive(Clone, Default)]
+pub enum Client {
+    #[default]
+    None,
+
+    #[cfg(feature = "mqtt")]
+    MqttClient(rumqttc::AsyncClient),
 }
 
 #[derive(Debug, Clone, PartialEq)]

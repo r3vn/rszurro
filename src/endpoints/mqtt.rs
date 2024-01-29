@@ -1,40 +1,19 @@
-use crate::{read_file, Endpoint, SensorUpdate};
-use log::{debug, trace};
-use rumqttc::{AsyncClient, Event, Key, MqttOptions, Packet, PubAck, QoS, TlsConfiguration};
+use crate::{read_file, Client, Endpoint, SensorUpdate};
+use log::trace;
+use rumqttc::{AsyncClient, Key, MqttOptions, QoS, TlsConfiguration};
+use std::time::Duration;
 
-pub async fn send(endpoint: Endpoint, update: SensorUpdate) -> bool {
-    // get sensor update data
-    let post_data = match endpoint.raw {
-        // raw = true, send raw sensor value
-        true => update.get_json().await["state"]
-            .to_string()
-            .replace('"', ""),
-        // raw = false send json sensor value
-        false => update.get_json().await.to_string(),
-    };
-
+pub async fn get_client(endpoint: Endpoint) -> Client {
     // connect to mqtt broker
-    let mut mqttoptions = MqttOptions::new(
-        format!("{}{}", &update.device_name, &update.sensor.name),
-        &endpoint.host,
-        endpoint.port,
-    );
-    let max_packet_size = 1024 * 1024;
+    let mut mqttoptions = MqttOptions::new(&endpoint.name, &endpoint.host, endpoint.port);
 
-    // set mqtt topic, true without prefix.
-    let topic = match endpoint.prefix.is_empty() {
-        true => format!("{}/{}", &update.device_name, &update.sensor.name),
-        false => format!(
-            "{}/{}/{}",
-            &endpoint.prefix, &update.device_name, &update.sensor.name
-        ),
-    };
+    let max_packet_size = 10 * 1024;
 
     // set mqtt options
     mqttoptions
         .set_max_packet_size(max_packet_size, max_packet_size)
-        .set_keep_alive(5)
-        .set_request_channel_capacity(3)
+        .set_keep_alive(Duration::from_secs(endpoint.keepalive))
+        .set_request_channel_capacity(10)
         .set_credentials(endpoint.username, endpoint.password);
 
     // check TLS client auth and custom ca settings
@@ -46,31 +25,48 @@ pub async fn send(endpoint: Endpoint, update: SensorUpdate) -> bool {
 
     // get client and eventloop
     let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
-
-    // spawn publish request
-    let client2 = client.clone();
     tokio::spawn(async move {
-        client2
-            .publish(&topic, QoS::AtLeastOnce, true, post_data)
-            .await
-            .unwrap();
+        // handle coinnection's eventloop
+        while let Ok(notification) = eventloop.poll().await {
+            trace!("got {:?}", &notification);
+        }
     });
 
-    // handle coinnection's eventloop
-    while let Ok(notification) = eventloop.poll().await {
-        trace!("got {:?}", &notification);
+    Client::MqttClient(client)
+}
 
-        match notification {
-            Event::Incoming(Packet::PubAck(PubAck { pkid: _, reason: _ })) => {
-                // PubAck received, disconnect the client and exit the eventloop
-                debug!("{}: updated successfully.", &update.sensor.name);
-                client.disconnect().await.unwrap()
-            }
-            _ => continue,
+pub async fn send(endpoint: Endpoint, update: SensorUpdate, client: Client) -> bool {
+    // get sensor update data
+    let post_data = match endpoint.raw {
+        // raw = true, send raw sensor value
+        true => update.get_json().await["state"]
+            .to_string()
+            .replace('"', ""),
+        // raw = false send json sensor value
+        false => update.get_json().await.to_string(),
+    };
+
+    // set mqtt topic, true without prefix.
+    let topic = match endpoint.prefix.is_empty() {
+        true => format!("{}/{}", &update.device_name, &update.sensor.name),
+        false => format!(
+            "{}/{}/{}",
+            &endpoint.prefix, &update.device_name, &update.sensor.name
+        ),
+    };
+
+    // spawn publish request
+    match client {
+        Client::MqttClient(client) => {
+            client
+                .publish(&topic, QoS::AtLeastOnce, true, post_data)
+                .await
+                .unwrap();
+
+            true
         }
+        _ => false,
     }
-
-    true
 }
 
 async fn get_tls_transport(

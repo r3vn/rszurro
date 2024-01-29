@@ -13,6 +13,15 @@ impl CacheManager {
         // init cache
         let mut cache = HashMap::new();
 
+        // get endpoints clients if any
+        let mut clients = HashMap::new();
+
+        for endpoint in &self.endpoints {
+            clients
+                .entry(&endpoint.name)
+                .or_insert(endpoint.get_client().await);
+        }
+
         // wait for senders
         loop {
             match rx.recv().await {
@@ -31,12 +40,12 @@ impl CacheManager {
                     // check if value changed from the cached one
                     if last_value != Some(&update.value) {
                         for endpoint in &self.endpoints {
-                            // clone update
+                            // clone update and endpoint's client
                             let update1 = update.clone();
-                            //let endpoint1 = endpoint.clone();
+                            let client = clients.get(&endpoint.name).unwrap().clone();
 
                             // send data to endpoint
-                            endpoint.run(update1).await;
+                            endpoint.run(update1, client).await;
                             info!(
                                 "{} {}: {:?} => {}",
                                 &update.device_name,

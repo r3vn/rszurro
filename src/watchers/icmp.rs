@@ -25,16 +25,7 @@ pub async fn run(
         };
 
         // make a sensor
-        let sensor = Sensor {
-            name: "status".to_string(),
-            friendly_name: watcher.name.clone(),
-            address: 0,
-            is_bool: false,
-            accuracy: 0.0,
-            unit: "".to_string(),
-            state_class: "".to_string(),
-            device_class: "".to_string(),
-        };
+        let sensor = Sensor::new("status".to_string(), watcher.name.clone()).await;
 
         // update sensor cache
         update_sensor(&tx, &watcher.name, &sensor, SensorValue::IsBool(value)).await;

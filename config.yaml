@@ -14,6 +14,7 @@ endpoints:
 #  host: 10.0.15.10
 #  port: 1883
 #  raw: true
+#  keepalive: 15
 #  username: testuser 
 #  password: testpass
 #  ca: /tmp/ca.crt
