@@ -181,8 +181,8 @@ pub struct Sensor {
     #[serde(default)]
     pub friendly_name: String,
 
-    #[serde(default = "sensor_default_bool")]
-    pub is_bool: bool,
+    #[serde(default)]
+    pub debounce_delay: u64,
 
     #[serde(default)]
     pub address: u16,
@@ -206,11 +206,11 @@ impl Sensor {
             name,
             friendly_name,
             address: 0,
-            is_bool: false,
             accuracy: 0.0,
             unit: "".to_string(),
             state_class: "".to_string(),
             device_class: "".to_string(),
+            debounce_delay: 0,
         }
     }
 }
@@ -272,10 +272,6 @@ pub enum SensorValue {
     IsBool(bool),
     IsF64(f64),
     IsString(String),
-}
-
-fn sensor_default_bool() -> bool {
-    false
 }
 
 fn sensor_default_accuracy() -> f64 {

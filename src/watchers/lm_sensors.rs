@@ -57,7 +57,7 @@ pub fn run(
                             unit: unit.clone(),
                             accuracy: 1.0,
                             address: 0,
-                            is_bool: false,
+                            debounce_delay: 0,
                             state_class: "measurement".to_string(),
                             device_class: device_class.clone(),
                         };

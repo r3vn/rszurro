@@ -24,9 +24,9 @@ pub async fn run(
             unit: "s".to_string(),
             accuracy: 1.0,
             address: 0,
-            is_bool: false,
             state_class: "".to_string(),
             device_class: "duration".to_string(),
+            debounce_delay: 0,
         };
 
         trace!("uptime => {}", &uptime_seconds);
