@@ -1,9 +1,11 @@
 use crate::{read_file, Client, Endpoint, SensorUpdate};
-use log::trace;
+use log::{error, trace};
 use rumqttc::{AsyncClient, Key, MqttOptions, QoS, TlsConfiguration};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 
-pub async fn get_client(endpoint: Endpoint) -> Client {
+pub async fn get_client(endpoint: Endpoint, state: Arc<Mutex<bool>>) -> Client {
     // connect to mqtt broker
     let mut mqttoptions = MqttOptions::new(&endpoint.name, &endpoint.host, endpoint.port);
 
@@ -28,8 +30,14 @@ pub async fn get_client(endpoint: Endpoint) -> Client {
     tokio::spawn(async move {
         // handle coinnection's eventloop
         while let Ok(notification) = eventloop.poll().await {
-            trace!("got {:?}", &notification);
+            trace!("Got notification: {:?}", &notification);
         }
+
+        // set connection state to false
+        let mut connection = state.lock().await;
+        *connection = false;
+
+        error!("Connection to {} lost.", &endpoint.name);
     });
 
     Client::MqttClient(client)
@@ -58,12 +66,15 @@ pub async fn send(endpoint: Endpoint, update: SensorUpdate, client: Client) -> b
     // spawn publish request
     match client {
         Client::MqttClient(client) => {
-            client
+            let publish = client
                 .publish(&topic, QoS::AtLeastOnce, true, post_data)
-                .await
-                .unwrap();
+                .await;
 
-            true
+            //match publish {
+            //    Ok(_) => true,
+            //    Err(_) => false,
+            //}
+            publish.is_ok()
         }
         _ => false,
     }
