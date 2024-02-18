@@ -1,8 +1,10 @@
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::mpsc;
+use tokio::sync::Mutex;
 
-use crate::{Endpoint, SensorUpdate};
+use crate::{Endpoint, EndpointConnection, SensorUpdate};
 
 pub struct CacheManager {
     pub enabled: bool,
@@ -14,12 +16,17 @@ impl CacheManager {
         let mut cache = HashMap::new();
 
         // get endpoints clients if any
-        let mut clients = HashMap::new();
+        let mut connections = HashMap::new();
 
         for endpoint in &self.endpoints {
-            clients
+            let state = Arc::new(Mutex::new(true));
+
+            connections
                 .entry(&endpoint.name)
-                .or_insert(endpoint.get_client().await);
+                .or_insert(EndpointConnection {
+                    client: endpoint.get_client(state.clone()).await,
+                    state,
+                });
         }
 
         // wait for senders
@@ -42,7 +49,22 @@ impl CacheManager {
                         for endpoint in &self.endpoints {
                             // clone update and endpoint's client
                             let update1 = update.clone();
-                            let client = clients.get(&endpoint.name).unwrap().clone();
+                            let connection = connections.get(&endpoint.name).unwrap();
+
+                            if !(*connection.state.lock().await) {
+                                error!("Retrying connection to {}...", &endpoint.name);
+
+                                let state = Arc::new(Mutex::new(true));
+                                connections.insert(
+                                    &endpoint.name,
+                                    EndpointConnection {
+                                        client: endpoint.get_client(state.clone()).await,
+                                        state,
+                                    },
+                                );
+                            }
+
+                            let client = connections.get(&endpoint.name).unwrap().client.clone();
 
                             // send data to endpoint
                             endpoint.run(update1, client).await;

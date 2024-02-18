@@ -7,6 +7,8 @@ pub use cache_manager::CacheManager;
 use log::error;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::{io::AsyncReadExt, sync::mpsc};
 
 #[derive(clap::Parser)]
@@ -72,12 +74,12 @@ pub struct Endpoint {
     pub client_key: String,
 }
 impl Endpoint {
-    pub async fn get_client(&self) -> Client {
+    pub async fn get_client(&self, state: Arc<Mutex<bool>>) -> Client {
         let endpoint = self.clone();
 
         match endpoint.platform.as_str() {
             #[cfg(feature = "mqtt")]
-            "mqtt" => endpoints::mqtt::get_client(endpoint).await,
+            "mqtt" => endpoints::mqtt::get_client(endpoint, state).await,
 
             _ => Client::None,
         }
@@ -256,6 +258,11 @@ impl SensorUpdate {
 
         decimal.abs() < std::f64::EPSILON
     }
+}
+
+pub struct EndpointConnection {
+    client: Client,
+    state: Arc<Mutex<bool>>,
 }
 
 #[derive(Clone, Default)]
