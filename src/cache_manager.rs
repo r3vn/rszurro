@@ -1,8 +1,6 @@
 use log::{debug, error, info, trace};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::mpsc;
-use tokio::sync::Mutex;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::{mpsc, Mutex};
 
 use crate::{Endpoint, EndpointConnection, SensorUpdate};
 

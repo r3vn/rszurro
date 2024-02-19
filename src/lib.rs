@@ -8,8 +8,7 @@ use log::error;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use tokio::{io::AsyncReadExt, sync::mpsc};
+use tokio::{io::AsyncReadExt, sync::mpsc, sync::Mutex};
 
 #[derive(clap::Parser)]
 pub struct Cli {

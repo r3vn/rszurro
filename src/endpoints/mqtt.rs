@@ -1,14 +1,13 @@
-use crate::{read_file, Client, Endpoint, SensorUpdate};
 use log::{error, trace};
 use rumqttc::{AsyncClient, Key, MqttOptions, QoS, TlsConfiguration};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
+
+use crate::{read_file, Client, Endpoint, SensorUpdate};
 
 pub async fn get_client(endpoint: Endpoint, state: Arc<Mutex<bool>>) -> Client {
     // connect to mqtt broker
     let mut mqttoptions = MqttOptions::new(&endpoint.name, &endpoint.host, endpoint.port);
-
     let max_packet_size = 10 * 1024;
 
     // set mqtt options
@@ -65,17 +64,10 @@ pub async fn send(endpoint: Endpoint, update: SensorUpdate, client: Client) -> b
 
     // spawn publish request
     match client {
-        Client::MqttClient(client) => {
-            let publish = client
-                .publish(&topic, QoS::AtLeastOnce, true, post_data)
-                .await;
-
-            //match publish {
-            //    Ok(_) => true,
-            //    Err(_) => false,
-            //}
-            publish.is_ok()
-        }
+        Client::MqttClient(client) => client
+            .publish(&topic, QoS::AtLeastOnce, true, post_data)
+            .await
+            .is_ok(), // return a bool
         _ => false,
     }
 }
