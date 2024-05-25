@@ -36,11 +36,12 @@ lm-sensors = { version = "0.2", optional = true }
 rumqttc = { version = "0.23", optional = true }
 
 [features]
-default = ["modbus-rtu", "sysinfo", "lmsensors", "gpio", "homeassistant", "icmp", "mqtt"]
+default = ["modbus-rtu", "sysinfo", "lmsensors", "gpio", "homeassistant", "icmp", "mqtt", "telegram"]
 modbus-rtu = ["dep:tokio-modbus","dep:tokio-serial"]
 sysinfo = []
 lmsensors = ["dep:lm-sensors"]
 gpio = ["dep:tokio-gpiod"]
 homeassistant = ["dep:reqwest"]
+telegram = ["dep:reqwest"]
 icmp = ["dep:tokio-icmp-echo"]
 mqtt = ["dep:rumqttc"]

@@ -52,6 +52,9 @@ pub struct Endpoint {
     pub api_key: String,
 
     #[serde(default)]
+    pub chat_id: String,
+
+    #[serde(default)]
     pub port: u16,
 
     #[serde(default)]
@@ -90,6 +93,9 @@ impl Endpoint {
 
         tokio::spawn(async move {
             match endpoint.platform.as_str() {
+                #[cfg(feature = "telegram")]
+                "telegram" => endpoints::telegram::send(endpoint, update).await,
+
                 #[cfg(feature = "homeassistant")]
                 "homeassistant" => endpoints::homeassistant::send(endpoint, update).await,
 

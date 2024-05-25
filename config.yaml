@@ -21,6 +21,11 @@ endpoints:
 #  client_crt: /tmp/client.crt
 #  client_key: /tmp/client.key
 
+#- platform: telegram
+#  name: telegram
+#  api_key: "<YOUR_BOT_KEY>"
+#  chat_id: "<YOUR_CHAT_ID>"
+
 watchers:
 - platform: sysinfo
   name: rpi3
