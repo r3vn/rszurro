@@ -2,7 +2,7 @@ use log::{debug, error, info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{mpsc, Mutex};
 
-use crate::{Endpoint, EndpointConnection, SensorUpdate};
+use crate::{Endpoint, EndpointConnection, SensorUpdate, SensorValue};
 
 pub struct CacheManager {
     pub enabled: bool,
@@ -46,7 +46,15 @@ impl CacheManager {
                     if last_value != Some(&update.value) {
                         for endpoint in &self.endpoints {
                             // clone update and endpoint's client
-                            let update1 = update.clone();
+                            let update1 = SensorUpdate {
+                                device_name: update.device_name.clone(),
+                                sensor: update.sensor.clone(),
+                                value: update.value.clone(),
+                                last_value: match last_value {
+                                    None => SensorValue::None,
+                                    _ => last_value.unwrap().clone(),
+                                },
+                            };
                             let connection = connections.get(&endpoint.name).unwrap();
 
                             if !(*connection.state.lock().await) {

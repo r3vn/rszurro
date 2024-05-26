@@ -227,6 +227,7 @@ pub struct SensorUpdate {
     pub device_name: String,
     pub sensor: Sensor,
     pub value: SensorValue,
+    pub last_value: SensorValue,
 }
 impl SensorUpdate {
     pub async fn get_json(&self) -> serde_json::Value {
@@ -236,7 +237,7 @@ impl SensorUpdate {
                 "unit_of_measurement": self.sensor.unit,
                 "device_class": self.sensor.device_class,
                 "friendly_name": self.sensor.friendly_name,
-                "state_class": self.sensor.state_class
+                "state_class": self.sensor.state_class,
             }
         });
 
@@ -253,6 +254,23 @@ impl SensorUpdate {
             },
 
             SensorValue::IsString(value) => serde_json::Value::String(value),
+            SensorValue::None => "off".into(),
+        };
+
+        data["attributes"]["previous_state"] = match self.last_value.clone() {
+            SensorValue::IsBool(value) => serde_json::Value::String(if value {
+                "on".to_string()
+            } else {
+                "off".to_string()
+            }),
+
+            SensorValue::IsF64(value) => match self.zero_decimal(value).await {
+                true => (value as i64).into(), // add state as i64
+                false => value.into(),         // add state as f64
+            },
+
+            SensorValue::IsString(value) => serde_json::Value::String(value),
+            SensorValue::None => "off".into(),
         };
 
         data
@@ -284,6 +302,7 @@ pub enum SensorValue {
     IsBool(bool),
     IsF64(f64),
     IsString(String),
+    None,
 }
 
 fn sensor_default_accuracy() -> f64 {
@@ -301,6 +320,7 @@ pub async fn update_sensor(
         device_name: device_name.to_string(),
         sensor: sensor.clone(),
         value,
+        last_value: SensorValue::None,
     };
 
     // send sensor update to cache channel
@@ -318,6 +338,7 @@ pub fn update_sensor_sync(
         device_name: device_name.to_string(),
         sensor: sensor.clone(),
         value,
+        last_value: SensorValue::None,
     };
 
     // send sensor update to cache channel

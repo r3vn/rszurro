@@ -2,7 +2,7 @@
 name = "rszurro"
 authors = ["Giuseppe Corti <giuseppe.corti@protonmail.com>"]
 license = "MIT"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 
 [package.metadata.deb]
@@ -18,10 +18,10 @@ assets = [
 maintainer-scripts = "debian/scripts"
 
 [dependencies]
-tokio = { version = "1.35", features = ["rt", "rt-multi-thread", "macros", "time", "fs", "sync"] }
-tokio-modbus = { version = "0.10", default-features = false, features = ["rtu"], optional = true }
+tokio = { version = "1.37", features = ["rt", "rt-multi-thread", "macros", "time", "fs", "sync"] }
+tokio-modbus = { version = "0.11", default-features = false, features = ["rtu"], optional = true }
 tokio-serial = { version = "5.4", optional = true }
-tokio-gpiod = { version = "0.2", optional = true }
+tokio-gpiod = { version = "0.3", optional = true }
 tokio-icmp-echo = { version = "0.4", optional = true }
 futures = "0.3"
 serde = "1.0"
@@ -31,9 +31,9 @@ serde_yaml = "0.9"
 log = "0.4"
 env_logger = "0.11"
 clap = { version = "4.4", features = ["derive"] }
-reqwest = { version = "0.11", features = ["json"], optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
 lm-sensors = { version = "0.2", optional = true }
-rumqttc = { version = "0.23", optional = true }
+rumqttc = { version = "0.24", optional = true }
 
 [features]
 default = ["modbus-rtu", "sysinfo", "lmsensors", "gpio", "homeassistant", "icmp", "mqtt", "telegram"]

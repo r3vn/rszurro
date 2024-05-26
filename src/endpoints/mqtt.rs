@@ -1,5 +1,5 @@
 use log::{error, trace};
-use rumqttc::{AsyncClient, Key, MqttOptions, QoS, TlsConfiguration};
+use rumqttc::{AsyncClient, MqttOptions, QoS, TlsConfiguration};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
@@ -86,10 +86,7 @@ async fn get_tls_transport(
         alpn: None,
         client_auth: match client_crt.is_empty() {
             true => None,
-            false => Some((
-                read_file(client_crt).await,
-                Key::RSA(read_file(client_key).await),
-            )),
+            false => Some((read_file(client_crt).await, read_file(client_key).await)),
         },
     })
 }
