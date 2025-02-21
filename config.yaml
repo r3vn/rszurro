@@ -41,7 +41,9 @@ watchers:
 #- platform: icmp
 #  name: localhost
 #  host: "127.0.0.1"
+#  count: 3
 #  scan_interval: 5000
+#  timeout: 1000
 
 # Example configuration of a rain sensor using raspberry's gpio
 #

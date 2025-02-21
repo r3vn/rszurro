@@ -16,7 +16,12 @@ pub async fn run(
     loop {
         // ping host
         let value = match pinger
-            .ping(address, 6969, 1, Duration::from_millis(1000))
+            .ping(
+                address,
+                6969,
+                watcher.count.try_into().unwrap(),
+                Duration::from_millis(watcher.timeout),
+            )
             .await
         {
             Ok(Some(_)) => true,

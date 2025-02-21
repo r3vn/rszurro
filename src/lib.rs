@@ -138,6 +138,12 @@ pub struct Watcher {
     pub scan_interval: u64,
 
     #[serde(default)]
+    pub timeout: u64,
+
+    #[serde(default)]
+    pub count: u64,
+
+    #[serde(default)]
     pub temperature_unit: String,
 }
 impl Watcher {
