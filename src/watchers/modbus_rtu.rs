@@ -1,7 +1,7 @@
 use log::{error, trace};
 use tokio::sync::mpsc;
 use tokio::time::{sleep, timeout, Duration};
-use tokio_modbus::prelude::{rtu, Reader};
+use tokio_modbus::prelude::{Client, rtu, Reader};
 use tokio_serial::SerialStream;
 
 use crate::{update_sensor, SensorUpdate, SensorValue, Watcher};
@@ -34,13 +34,14 @@ pub async fn run(
                     match timeout_reg_value {
                         Ok(modbus_value) => match modbus_value {
                             // Convert modbus register's value to float and truncate it at two digit
-                            Ok(rsp) => {
-                                f64::trunc(
-                                    rsp.iter().map(|&val| val as i64).sum::<i64>() as f64
-                                        * sensor.accuracy
-                                        * 100.0,
-                                ) / 100.0
-                            }
+                            Ok(rsp) => f64::trunc(
+                                rsp.unwrap()
+                                    .iter()
+                                    .map(|&val| val as i64).sum::<i64>() as f64
+
+                                * sensor.accuracy
+                                * 100.0,
+                            ) / 100.0,
 
                             Err(e) => {
                                 // modbus error
