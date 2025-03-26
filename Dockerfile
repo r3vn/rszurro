@@ -21,5 +21,11 @@ RUN apt update && apt install -y libsensors5 \
 RUN apt clean
 RUN mkdir /data
 
+# Create an user for the application
+RUN useradd -ms /bin/bash rszurro
+RUN chown -R rszurro:rszurro /app
+
 COPY --from=builder /app/target/release/rszurro .
+
+USER rszurro
 ENTRYPOINT ["./rszurro"]
