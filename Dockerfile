@@ -26,6 +26,7 @@ RUN useradd -ms /bin/bash rszurro
 RUN chown -R rszurro:rszurro /app
 
 COPY --from=builder /app/target/release/rszurro .
+RUN setcap cap_net_raw+ep /app/rszurro # allow icmp as user
 
 USER rszurro
 ENTRYPOINT ["./rszurro"]
