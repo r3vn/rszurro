@@ -16,7 +16,8 @@ WORKDIR /app
 
 RUN apt update && apt install -y libsensors5 \
     libssl3 \
-    libclang1
+    libclang1 \
+    libcap2-bin
 
 RUN apt clean
 RUN mkdir /data
@@ -26,7 +27,7 @@ RUN useradd -ms /bin/bash rszurro
 RUN chown -R rszurro:rszurro /app
 
 COPY --from=builder /app/target/release/rszurro .
-RUN setcap cap_net_raw+ep /app/rszurro # allow icmp as user
+RUN /usr/sbin/setcap cap_net_raw+ep /app/rszurro # allow icmp as user
 
 USER rszurro
 ENTRYPOINT ["./rszurro"]
